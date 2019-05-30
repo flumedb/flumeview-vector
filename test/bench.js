@@ -1,5 +1,5 @@
 
-var Vector = require('../vector')
+var Vector = require('../raf-vector')
 var Polyraf = require('polyraf')
 var filename = '/tmp/test-flumeview-vector'
 try { require('fs').unlinkSync(filename) } catch (_) { }
