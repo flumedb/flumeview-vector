@@ -1,0 +1,21 @@
+{
+  "name": "flumeview-vector",
+  "description": "",
+  "version": "1.0.0",
+  "homepage": "https://github.com/dominictarr/flumeview-vector",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dominictarr/flumeview-vector.git"
+  },
+  "dependencies": {
+    "polyraf": "^1.0.1"
+  },
+  "devDependencies": {
+    "tape": "^4.10.2"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "author": "Dominic Tarr @EMovhfIrFk4NihAKnRNhrfRaqIhBv1Wj8pTxJNgvCCY=.ed25519)",
+  "license": "MIT"
+}
