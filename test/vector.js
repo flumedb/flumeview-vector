@@ -80,24 +80,29 @@ tape('allocate into next block', function (t) {
         t.end()
       })
     })
-//    t.notEqual(vector2, vector)
-//    console.log(vector2, vector)
-//    t.equal(index, 0)
-//    v.get(vector, 32, function (err, _19) {
-//      if(err) throw err
-//      v.get(vector2, 0, function (err, __19) {
-//        if(err) throw err
-//        t.equal(_19, _19)
-//        t.equal(_19, 19)
-//        t.end()
-//      })
-//    })
   })
 })
 
+tape('allocate multiple blocks', function (t) {
+  var vec1, vec2
+  v.alloc(128, function (err, _vec1) {
+    if(err) throw err
+    vec1 = _vec1
+  })
+  v.alloc(128, function (err, _vec2) {
+    if(err) throw err
+    vec2 = _vec2
+    t.ok(vec1)
+    t.ok(vec2)
+    t.notEqual(vec1, vec2)
+    v.set(vec1, 129, 7, function (err, vec1_2, i2) {
+      console.log('vec1_2', vec1_2)
+    })
+    v.set(vec2, 129, 5, function (err, vec2_2, i2) {
+      console.log('vec2_2', vec2_2)
+      t.end()
+    })
 
-
-
-
-
+  })
+})
 
