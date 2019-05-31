@@ -1,6 +1,11 @@
 var tape = require('tape')
+
 var Vector = require('../vector')
-var v = Vector(null, 1024), vector
+var Polyraf = require('polyraf')
+var filename = '/tmp/test-flumeview-vector'
+try { require('fs').unlinkSync(filename) } catch (_) { }
+var raf = Polyraf(filename)
+var v = Vector(raf, 1024)
 
 tape('alloc, set, get', function (t) {
   v.alloc(32, function (err, _vector) {
@@ -71,7 +76,7 @@ tape('allocate into next block', function (t) {
       if(err) throw err
       console.log('v2', vector2)
       v.get(vector, 256, function (err, _23) {
-        t.deepEqual(_23)
+        t.deepEqual(_23, 23)
         t.end()
       })
     })
@@ -89,6 +94,10 @@ tape('allocate into next block', function (t) {
 //    })
   })
 })
+
+
+
+
 
 
 
