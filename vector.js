@@ -2,6 +2,8 @@
 //creates vectors in that, always keeping any vector
 //within a block.
 
+MEM = 0
+
 function get (block, vector, index) {
   if(size(block, vector) > index)
     return block.readUInt32LE(vector+8+index*4)
@@ -13,6 +15,7 @@ function size (block, vector) {
 }
 
 function next (block, vector, index) {
+//  console.log("next", vector + 4)
   return block.readUInt32LE(vector + 4)
 }
 
@@ -24,15 +27,19 @@ function set(block, vector, index, value) {
 }
 
 function alloc (block, size) {
+  if(size < 1) throw new Error('size cannot be smaller than 1, was:'+size)
   var start = block.readUInt32LE(0) || 4
   //check if there is enough room left
   var end = start + (size*4 + 8)
-  //console.log('start,end', start, end)
-  if(start >= block.length) throw new Error('invalid free pointer')
+  //console.log('alloc size', size, MEM += size*4+8)
+//  MEM += size*4+8
+  if(start >= block.length) throw new Error('invalid free pointer:'+start)
   if(block.length >= end) {
+//    console.log("START,END,SIZE", start, end, size)
     block.writeUInt32LE(size, start)
-    //console.log("UPDATE END", end)
     if(end > block.length) throw new Error('invalid end')
+    if(end < block.length && end > block.length - 12)
+      throw new Error('gap too small:'+end)
     block.writeUInt32LE(end, 0)
     return start
   }
@@ -50,7 +57,6 @@ module.exports = function (raf, block_size) {
     else if('function' === typeof blocks[i]) blocks[i] = [blocks[i], cb]
     else {
       blocks[i] = cb
-      console.log("GET BLOCK", i)
       setTimeout(function () {
 //      raf.open(function () {
   ///      raf.stat(function (err, stat) {
@@ -82,13 +88,52 @@ module.exports = function (raf, block_size) {
 
   return self = {
     alloc: function (size, cb) {
+      if(!size) throw new Error('invalid size:'+size)
       //always alloc into the last block
       var block_index = Math.max(blocks.length-1, 0)
-      console.log('bi', block_index)
-      get_block(block_index, function (err, block) {
-        console.log('got', err, block)
-        cb(null, (block_index * block_size) + alloc(block, size))
+      get_block(block_index, function next (err, block) {
+        if(Math.max(blocks.length-1, 0) != block_index)
+          return self.alloc(size, cb)
+        var free = block.readUInt32LE(0) || 4
+        if(free == block_size)
+          return get_block(block_index = block_index+1, next)
+//          throw new Error('full block')
+
+//        var remaining_size = (block_size - (free + 8)) / 4
+  //      var new_size = Math.min(size, remaining_size)
+    //    if(new_size <= 0)
+      //    throw new Error('size too small, size:'+size+' remaining_size:'+remaining_size+' free:'+free)
+//        console.log('new_size', size, remaining_size)
+
+        var _size = ~~(size/2)
+        var max_size = (block_size - (free + 8)) / 4
+
+        var new_size = max_size < _size * 3 ? max_size : _size*2
+        if(new_size <= 0)
+          throw new Error('size too small, size:'+size+' remaining_size:'+remaining_size+' free:'+free)
+        var block_start = (block_index * block_size)
+        vector2 = block_start + alloc(block, new_size)
+        //console.log('alloced', vector2, new_size)
+        cb(null, vector2)
+//        cb(null, (block_index * block_size) + alloc(block, new_size))
       })
+    },
+    dump: function (vector, cb) {
+      var data = []
+      ;(function dump (vector) {
+        var block_index = ~~(vector/block_size)
+        //address of vector, relative to block
+        var _vector = vector%block_size
+        get_block(block_index, function (err, block) {
+          var _size = size(block, _vector)
+          var _next = next(block, _vector)
+          data.push({id: vector, size: _size, next: _next, block: ~~(vector/block_size)})
+          if(_next)
+            dump(_next)
+          else
+            cb(null, data)
+        })
+      })(vector)
     },
     get: function (vector, index, cb) {
       var block_index = ~~(vector/block_size)
@@ -106,21 +151,21 @@ module.exports = function (raf, block_size) {
       })
     },
     set: function (vector, index, value, cb) {
+  //    console.log("SET:", vector, index, value)
       var block_index = ~~(vector/block_size)
       //address of vector, relative to block
       var _vector = vector%block_size
 
       get_block(block_index, function (err, block) {
         var _size = size(block, _vector)
+        if(!_size) throw new Error('zero size vector '+_vector)
         var _next = next(block, _vector)
-//        console.log('_vector.next', _next, [block_index, vector, index], [_size, index])
         if(_size > index) {
           set(block, _vector, index, value)
           cb(null, vector, index)
         }
         else if(_next) {
           //TODO: optimize for case where next is within this same block
-//          console.log("NEXT", _next, index - _size)
           self.set(_next, index - _size, value, cb)
         }
         else {
@@ -135,60 +180,48 @@ module.exports = function (raf, block_size) {
 
           //remaining space (within block) always written at start of block.
           var free = block.readUInt32LE(0) || 4
-          console.log("FRRE", free, block_size)
           if(free < block_size) {
-            console.log("WITHIN BLOCK", free, block_size)
             var max_size = ~~((block_size - free - 8)/4)
+//            console.log('remainder', max_size, block_size, free)
             var ptr
             //normally, double the vector size from last time
             //but if that leaves a gap smaller than the last size, expand to the rest of the space.
             //otherwise, double the previous size
-            if(max_size < _size * 3)
-              vector2 = alloc(block, max_size)
-            else
-              vector2 = alloc(block, _size*2)
+            var block_start = (block_index * block_size)
+//            if()
+              vector2 = block_start + alloc(block, max_size < _size * 3 ? max_size : _size*2)
+//            else
+//              vector2 = block_start + alloc(block, )
 
             //write the next pointer in the previous vector
-        console.log('set next', _vector+4)
-            block.writeUInt32LE(block_size*block_index + vector2, _vector + 4)
+            block.writeUInt32LE(vector2, _vector + 4)
             //call set again.
             self.set(vector2, index-_size, value, cb)
           }
           else {
 //            block.writeUInt32LE(block_size*(block_index+1) + 4, _vector + 4)
-            console.log("NEW BLOCK", block_index+1)
             //new vector is in the next block
             //trust that the next vector starts at the start of the next block
-              var block_start = block_size*(block_index+1)
-            block.writeUInt32LE(block_start + 4, _vector + 4)
-            get_block(block_index+1, function (err, block2) {
-              var free = block2.readUInt32LE(0)
-              if(free != 0) {
-                console.log('free:', free)
-                if(!next(block, vector)) throw new Error('expected next to be set')
-//                return setImmediate(function () {
-                return self.set(vector, index, value, cb)
-  //              })
+            var block_start = block_size*(block_index+1)
+  //          console.log('next vector', _size*2)
+            self.alloc(_size*2, function (err, vector2) {
+              if(err) cb(err)
+              else {
+//                console.log("update vector ptr", vector2, _vector+4)
+                block.writeUInt32LE(vector2, _vector + 4)
+                self.set(vector2, index - _size, value, cb)
               }
-              //update next pointer
-              var block_start = block_size*(block_index+1)
-              console.log('SET next ptr',block_start + 4, _vector+4)
-              block.writeUInt32LE(block_start + 4, _vector + 4)
-              var new_size = Math.min(_size*2, (block_size-12)/4)
-              console.log("ALLOC NEW BLOCK", new_size)
-
-              vector2 = block_start + alloc(block2, new_size)
-              console.log('new index:', index - _size, index, _size)
-              console.log('v2', vector2)
-              console.log("SET", index, value)
-              self.set(vector2, index - _size, value, cb)
             })
           }
         }
       })
+    },
+    size: function (cb) {
+      cb(null, blocks.length * block_size)
     }
   }
 }
+
 
 
 
