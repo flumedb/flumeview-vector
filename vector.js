@@ -25,15 +25,18 @@ function set(block, vector, index, value) {
 
 function alloc (block, size) {
   var start = block.readUInt32LE(0) || 4
-  if(start > block.length) throw new Error('invalid free pointer')
   //check if there is enough room left
   var end = start + (size*4 + 8)
+  //console.log('start,end', start, end)
+  if(start >= block.length) throw new Error('invalid free pointer')
   if(block.length >= end) {
     block.writeUInt32LE(size, start)
+    //console.log("UPDATE END", end)
+    if(end > block.length) throw new Error('invalid end')
     block.writeUInt32LE(end, 0)
     return start
   }
-  else throw new Error('insufficient space remaining in block, remaining:' + block.length + ' requested end:'+end)
+  else throw new Error('insufficient space remaining in block, remaining:' + block.length + ' requested end:'+end +', from start:'+start)
 }
 
 module.exports = function (raf, block_size) {
@@ -48,21 +51,31 @@ module.exports = function (raf, block_size) {
     else {
       blocks[i] = cb
       setTimeout(function () {
-        //XXX temp, just in memory, for testing...
-        var err = null, block = Buffer.alloc(block_size)
-        if(err) throw err
-        if('function' === typeof blocks[i]) {
-          var _cb = blocks[i]
-          blocks[i] = block
-          _cb(null, block)
-        }
-        else {
-          var _cbs = blocks[i]
-          blocks[i] = block
-          for(var j = 0; j < _cbs; j++)
-            _cbs[j](null, block)
-        }
-      })
+//      raf.open(function () {
+  ///      raf.stat(function (err, stat) {
+  //        console.log('stat',err, stat)
+   //       raf.write(block_size*i, Buffer.alloc(block_size), function (err, block) {
+     //       raf.read(block_size*i, block_size, function (err, block) {
+//              console.log(err)
+              if(err) throw err
+              //XXX temp, just in memory, for testing...
+              var err = null, block = Buffer.alloc(block_size)
+              if(err) throw err
+              if('function' === typeof blocks[i]) {
+                var _cb = blocks[i]
+                blocks[i] = block
+                _cb(null, block)
+              }
+              else {
+                var _cbs = blocks[i]
+                blocks[i] = block
+                for(var j = 0; j < _cbs.length; j++)
+                  _cbs[j](null, block)
+              }
+            })
+//          })
+//        })
+//      })
     }
   }
 
@@ -70,7 +83,9 @@ module.exports = function (raf, block_size) {
     alloc: function (size, cb) {
       //always alloc into the last block
       var block_index = Math.max(blocks.length-1, 0)
+      console.log('bi', block_index)
       get_block(block_index, function (err, block) {
+        console.log('got', err, block)
         cb(null, (block_index * block_size) + alloc(block, size))
       })
     },
@@ -116,8 +131,10 @@ module.exports = function (raf, block_size) {
           //bigger.
 
           //remaining space (within block) always written at start of block.
-          var free = block.readUInt32LE(0)
+          var free = block.readUInt32LE(0) || 4
+//          console.log("FRRE", free, block_size)
           if(free < block_size) {
+            console.log("WITHIN BLOCK", free, block_size)
             var max_size = ~~((block_size - free - 8)/4)
             var ptr
             //normally, double the vector size from last time
@@ -134,11 +151,19 @@ module.exports = function (raf, block_size) {
             self.set(vector2, index-_size, value, cb)
           }
           else {
+            console.log("NEW BLOCK", block_index+1)
             //new vector is in the next block
             //trust that the next vector starts at the start of the next block
             get_block(block_index+1, function (err, block2) {
-              block.writeUInt32LE(block_size*(block_index+1) + 4)
-              vector2 = alloc(block2, Math.min(_size*2, (block_size-12)/4))
+              console.log('free:', block2.readUInt32LE(0))
+              //update next pointer
+              var block_start = block_size*(block_index+1)
+              console.log('nb_ptr',block_start + 4)
+              block.writeUInt32LE(block_size*(block_index+1) + 4, _vector + 4)
+              console.log("ALLOC NEW BLOCK", _size*2, ~~((block_size-12)/4))
+              vector2 = block_start + alloc(block2, Math.min(_size*2, (block_size-12)/4))
+              console.log('new index:', index - _size, index, _size)
+              console.log('v2', vector2)
               self.set(vector2, index - _size, value, cb)
             })
           }
@@ -147,4 +172,6 @@ module.exports = function (raf, block_size) {
     }
   }
 }
+
+
 
