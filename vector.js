@@ -1,4 +1,3 @@
-
 //reads data in blocks, into memory.
 //creates vectors in that, always keeping any vector
 //within a block.
@@ -26,14 +25,15 @@ function set(block, vector, index, value) {
 
 function alloc (block, size) {
   var start = block.readUInt32LE(0) || 4
+  if(start > block.length) throw new Error('invalid free pointer')
   //check if there is enough room left
   var end = start + (size*4 + 8)
-  if(block.length > end) {
+  if(block.length >= end) {
     block.writeUInt32LE(size, start)
     block.writeUInt32LE(end, 0)
     return start
   }
-  else throw new Error('insufficient space remaining in block')
+  else throw new Error('insufficient space remaining in block, remaining:' + block.length + ' requested end:'+end)
 }
 
 module.exports = function (raf, block_size) {
@@ -41,19 +41,15 @@ module.exports = function (raf, block_size) {
   var blocks = [], self
 
   function get_block (i, cb) {
-    console.log('get_block', !!blocks[i])
     if(Buffer.isBuffer(blocks[i])) cb(null, blocks[i])
     else if(Array.isArray(blocks[i])) blocks[i].push(cb)
     //optimize case where there is only a single reader:
     else if('function' === typeof blocks[i]) blocks[i] = [blocks[i], cb]
     else {
       blocks[i] = cb
-      console.log('Read new block', i)
       setTimeout(function () {
         //XXX temp, just in memory, for testing...
         var err = null, block = Buffer.alloc(block_size)
-     // raf.read(i*block_size, block_size, function (err, block) {
-        console.log(blocks, i, block)
         if(err) throw err
         if('function' === typeof blocks[i]) {
           var _cb = blocks[i]
@@ -97,6 +93,7 @@ module.exports = function (raf, block_size) {
       var block_index = ~~(vector/block_size)
       //address of vector, relative to block
       var _vector = vector%block_size
+
       get_block(block_index, function (err, block) {
         var _size = size(block, _vector)
         var _next = next(block, _vector)
@@ -120,7 +117,7 @@ module.exports = function (raf, block_size) {
 
           //remaining space (within block) always written at start of block.
           var free = block.readUInt32LE(0)
-          if(free < block.length) {
+          if(free < block_size) {
             var max_size = ~~((block_size - free - 8)/4)
             var ptr
             //normally, double the vector size from last time
@@ -130,6 +127,7 @@ module.exports = function (raf, block_size) {
               vector2 = alloc(block, max_size)
             else
               vector2 = alloc(block, _size*2)
+
             //write the next pointer in the previous vector
             block.writeUInt32LE(block_size*block_index + vector2, vector + 4)
             //call set again.
@@ -137,14 +135,16 @@ module.exports = function (raf, block_size) {
           }
           else {
             //new vector is in the next block
-            throw new Error('not implemented yet')
+            //trust that the next vector starts at the start of the next block
+            get_block(block_index+1, function (err, block2) {
+              block.writeUInt32LE(block_size*(block_index+1) + 4)
+              vector2 = alloc(block2, Math.min(_size*2, (block_size-12)/4))
+              self.set(vector2, index - _size, value, cb)
+            })
           }
         }
       })
-    },
-    
+    }
   }
 }
-
-
 
