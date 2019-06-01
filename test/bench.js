@@ -2,8 +2,8 @@
 var Vector = require('../vector')
 var Polyraf = require('polyraf')
 var filename = '/tmp/test-flumeview-vector'
-try { require('fs').unlinkSync(filename) } catch (_) { }
-var raf = Polyraf(filename)
+//try { require('fs').unlinkSync(filename) } catch (_) { }
+var raf = Polyraf(filename, {truncate: true, readable: true, writable: true})
 var v = Vector(raf)
 
 var start = Date.now(), N = 500000
