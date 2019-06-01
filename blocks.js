@@ -23,7 +23,6 @@ module.exports = function (raf, block_size) {
       ready()
     }
     else {
-//      console.log("INIT_READ", block_index*block_size, block_size)
       raf.read(block_index*block_size, block_size, function (err, _block) {
         if(err) throw err
         if(_block.length < block_size) {
@@ -78,11 +77,7 @@ module.exports = function (raf, block_size) {
       else {
         if(i >= blocks.length) throw new Error('read beyond length:'+i)
         blocks[i] = cb
-   //     console.log("READ", i, block_size*i, block_size)
         raf.read(block_size*i, block_size, function (err, block) {
-  //        console.log("GOT", err, block, block_size*i, block_size)
-          //XXX temp, just in memory, for testing...
-          //var err = null, block = Buffer.alloc(block_size)
           if(err) throw err
           if('function' === typeof blocks[i]) {
             var _cb = blocks[i]
@@ -108,11 +103,9 @@ module.exports = function (raf, block_size) {
       //if last block is non-empty, return that
       //else allocate a new empty block.
       self.free = (blocks.length-1) * block_size + blocks[blocks.length-1].readUInt32LE(0)
-      //console.log("LAST", self.free % block_size, ~~(self.free / block_size))
       if(self.free % block_size)
         return ~~(self.free / block_size)
       else {
-     //   console.log("NEW BLOCK")
         var i = blocks.length
         blocks[i] = Buffer.alloc(block_size)
         blocks[i].writeUInt32LE(4, 0)
@@ -131,32 +124,4 @@ module.exports = function (raf, block_size) {
     }
   }
 }
-/*
-if(!module.parent) {
-  var Praf = require('random-access-file')
-  var raf = Praf(process.argv[2], {readable: true, writable: true})
-  var blocks = module.exports (raf, 65536)
-  blocks.ready(function () {
-    console.log("READY")
-    blocks.get(0, function (err, block) {
-      console.log(block)
-      block.write('HELLO THERE!!!', 0)
-      console.log('block.length', block.length)
-      blocks.dirty(0)
-      blocks.drain(function () {
-        console.log('written')
-      })
-    })
-  })
-}
-*/
-
-
-
-
-
-
-
-
-
 

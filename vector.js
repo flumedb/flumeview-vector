@@ -52,33 +52,6 @@ module.exports = function (raf, block_size) {
   var self
   var blocks = Blocks(raf, block_size)
 
-  function get_block (i, cb) {
-    blocks.get(i, cb)
-//    if(Buffer.isBuffer(blocks[i])) cb(null, blocks[i])
-//    else if(Array.isArray(blocks[i])) blocks[i].push(cb)
-//    //optimize case where there is only a single reader:
-//    else if('function' === typeof blocks[i]) blocks[i] = [blocks[i], cb]
-//    else {
-//      blocks[i] = cb
-//      setTimeout(function () {
-//        //XXX temp, just in memory, for testing...
-//        var err = null, block = Buffer.alloc(block_size)
-//        if(err) throw err
-//        if('function' === typeof blocks[i]) {
-//          var _cb = blocks[i]
-//          blocks[i] = block
-//          _cb(null, block)
-//        }
-//        else {
-//          var _cbs = blocks[i]
-//          blocks[i] = block
-//          for(var j = 0; j < _cbs.length; j++)
-//            _cbs[j](null, block)
-//        }
-//      })
-//    }
-  }
-
   return self = {
     ready: blocks.ready,
     alloc: function (size, cb) {
@@ -86,14 +59,10 @@ module.exports = function (raf, block_size) {
         if(!size) throw new Error('invalid size:'+size)
         //always alloc into the last block
         var block_index = blocks.last()
-//        console.log("BLOCK FOR ALLOC", block_index)
-        get_block(block_index, function next (err, block) {
-    //      if(Math.max(blocks.length-1, 0) != block_index)
-      //      return self.alloc(size, cb)
+        blocks.get(block_index, function next (err, block) {
           var free = block.readUInt32LE(0) || 4
-//          console.log("FREE", free, block_index)
           if(free == block_size) {
-            return get_block(block_index = blocks.last(), next)
+            return blocks.get(block_index = blocks.last(), next)
           }
           var _size = ~~(size/2)
           var max_size = (block_size - (free + 8)) / 4
@@ -103,10 +72,7 @@ module.exports = function (raf, block_size) {
             throw new Error('size too small, size:'+size+' remaining_size:'+remaining_size+' free:'+free)
           var block_start = (block_index * block_size)
           var _vector2 = alloc(block, new_size)
-//          console.log('bs', block_start, _vector2)
-
           vector2 = block_start + _vector2
-//          console.log(vector2, block.readUInt32LE(_vector2+4), block.readUInt32LE(_vector2), block)
           blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
           cb(null, vector2)
         })
@@ -117,8 +83,7 @@ module.exports = function (raf, block_size) {
         var block_index = ~~(vector/block_size)
         //address of vector, relative to block
         var _vector = vector%block_size
-  //      console.log("GET", block_index, vector)
-        get_block(block_index, function (err, block) {
+        blocks.get(block_index, function (err, block) {
           var _size = size(block, _vector)
           var _next = next(block, _vector)
           if(_size > index) cb(null, get(block, _vector, index))
@@ -135,11 +100,9 @@ module.exports = function (raf, block_size) {
         var block_index = ~~(vector/block_size)
         //address of vector, relative to block
         var _vector = vector%block_size
-    //    console.log("SET", vector, block_index)
-        get_block(block_index, function (err, block) {
+        blocks.get(block_index, function (err, block) {
           if(!block.readUInt32LE(0)) throw new Error('block missing free pointer')
           var _size = size(block, _vector)
-      //    console.log('size', _size)
           if(!_size) throw new Error('zero size vector '+_vector)
           var _next = next(block, _vector)
           if(_size > index) {
@@ -201,7 +164,7 @@ module.exports = function (raf, block_size) {
         var block_index = ~~(vector/block_size)
         //address of vector, relative to block
         var _vector = vector%block_size
-        get_block(block_index, function (err, block) {
+        blocks.get(block_index, function (err, block) {
           var _size = size(block, _vector)
           var _next = next(block, _vector)
           data.push({id: vector, size: _size, next: _next, block: ~~(vector/block_size)})
