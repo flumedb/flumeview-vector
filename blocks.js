@@ -65,6 +65,7 @@ module.exports = function (raf, block_size) {
   }
 
   return self = {
+    block_size: block_size,
     free: undefined,
     get: function (i, cb) {
       if(Buffer.isBuffer(blocks[i]))
