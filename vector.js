@@ -45,6 +45,29 @@ function alloc (block, size) {
   else throw new Error('insufficient space remaining in block, remaining:' + block.length + ' requested end:'+end +', from start:'+start)
 }
 
+function alloc_new (blocks, size) {
+  if(!size) throw new Error('invalid size:'+size)
+  //always alloc into the last block
+  var block_index = blocks.last()
+  var block_size = blocks.block_size
+  var block = blocks.blocks[block_index]
+  var free = block.readUInt32LE(0) || 4
+  if(free == block_size) {
+    return blocks.get(block_index = blocks.last(), next)
+  }
+  var _size = ~~(size/2)
+  var max_size = (block_size - (free + 8)) / 4
+
+  var new_size = max_size < _size * 3 ? max_size : _size*2
+  if(new_size <= 0)
+    throw new Error('size too small, size:'+size+' remaining_size:'+remaining_size+' free:'+free)
+  var block_start = (block_index * block_size)
+  var _vector2 = alloc(block, new_size)
+  var vector2 = block_start + _vector2
+  blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
+  return vector2
+}
+
 module.exports = function (raf, block_size) {
   block_size = block_size || 65536
   var self
@@ -54,25 +77,7 @@ module.exports = function (raf, block_size) {
     ready: blocks.ready,
     alloc: function (size, cb) {
       blocks.ready(function () {
-        if(!size) throw new Error('invalid size:'+size)
-        //always alloc into the last block
-        var block_index = blocks.last()
-        var block = blocks.blocks[block_index]
-        var free = block.readUInt32LE(0) || 4
-        if(free == block_size) {
-          return blocks.get(block_index = blocks.last(), next)
-        }
-        var _size = ~~(size/2)
-        var max_size = (block_size - (free + 8)) / 4
-
-        var new_size = max_size < _size * 3 ? max_size : _size*2
-        if(new_size <= 0)
-          throw new Error('size too small, size:'+size+' remaining_size:'+remaining_size+' free:'+free)
-        var block_start = (block_index * block_size)
-        var _vector2 = alloc(block, new_size)
-        var vector2 = block_start + _vector2
-        blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
-        cb(null, vector2)
+        cb(null, alloc_new(blocks, size))
       })
     },
     get: function (vector, index, cb) {
@@ -139,14 +144,10 @@ module.exports = function (raf, block_size) {
             }
             else {
               var block_start = block_size*(block_index+1)
-              self.alloc(_size*2, function (err, vector2) {
-                if(err) cb(err)
-                else {
-                  blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
-                  block.writeUInt32LE(vector2, _vector + 4)
-                  self.set(vector2, index - _size, value, cb)
-                }
-              })
+              var vector2 = alloc_new(blocks, _size*2)
+              blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
+              block.writeUInt32LE(vector2, _vector + 4)
+              self.set(vector2, index - _size, value, cb)
             }
           }
         })
