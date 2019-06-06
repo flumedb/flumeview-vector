@@ -4,9 +4,9 @@ var tape = require('tape')
 
 var Vector = require('../raf-vector')
 var Polyraf = require('polyraf')
-var filename = '/tmp/test-flumeview-vector'
-try { require('fs').unlinkSync(filename) } catch (_) { }
-var raf = Polyraf(filename)
+var filename = '/tmp/test-flumeview-vector_index'
+//try { require('fs').unlinkSync(filename) } catch (_) { }
+var raf = Polyraf(filename, {truncate: true, readable: true, writable: true})
 var v = Vector(raf)
 
 tape('alloc', function (t) {
