@@ -5,6 +5,7 @@ function isEmpty (o) {
 }
 
 module.exports = function (raf, block_size) {
+  //todo: make blocks be a cache, not store all blocks in memory.
   var blocks = []
   var dirty = {}, _dirty, writing
   var waiting_ready = [], waiting_drain = [], self
