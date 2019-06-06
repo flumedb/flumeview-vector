@@ -68,6 +68,32 @@ function alloc_new (blocks, size) {
   return vector2
 }
 
+function alloc_append(blocks, vector) {
+  var block_size = blocks.block_size
+  var block_index = ~~(vector/block_size)
+  //address of vector, relative to block
+  var _vector = vector%block_size
+  var block = blocks.blocks[~~(vector/block_size)]
+  var _size = size(block, _vector)
+
+  // always fill one block before going to the next one.
+  // to avoid leaving small allocations at the end of a block,
+  // if an allocation will leave a smallish space, increase it's size to fill the block.
+  // normally, double the size of the vector from last time, but sometimes tripple it
+  // to fill the block.
+
+  // if there is no space remaining in the block, next size is doubled, and allocation
+  // happens in a new block.
+
+  var free = block.readUInt32LE(0) || 4
+  var remaining = ~~((block_size - free - 8)/4)
+  var vector2 = alloc_new(blocks, (remaining > 0 && remaining < _size * 3 ? remaining : _size*2))
+  //write the next pointer in the previous vector
+  block.writeUInt32LE(vector2, _vector + 4)
+  //block.writeUInt32LE(vector2, _vector + 4)
+  return vector2
+}
+
 module.exports = function (raf, block_size) {
   block_size = block_size || 65536
   var self
@@ -116,29 +142,18 @@ module.exports = function (raf, block_size) {
             self.set(_next, index - _size, value, cb)
           }
           else {
-            //alloc a vector. double the size of previous
-            //or up to the rest of the block. all ways
-            //fill a block before moving to next block
-            //(sometimes will get a small vector at end)
-
-            //if a new vector will leave a too-small
-            //gap at the end, just make this vector
-            //bigger.
-            //remaining space (within block) always written at start of block.
+            if(false) {
             var free = block.readUInt32LE(0) || 4
             var remaining = ~~((block_size - free - 8)/4)
-            //always fill one block before going to the next one.
-            //to avoid leaving small allocations at the end of a block,
-            //if an allocation will leave a smallish space, increase it's size to fill the block.
-            //normally, double the size of the vector from last time, but sometimes tripple it
-            //to fill the block.
 
-            //if there is no space remaining in the block, next size is doubled, and allocation
-            //happens in a new block.
             var vector2 = alloc_new(blocks, (remaining > 0 && remaining < _size * 3 ? remaining : _size*2))
             //write the next pointer in the previous vector
             block.writeUInt32LE(vector2, _vector + 4)
+
             //call set again.
+            }
+            else
+              var vector2 = alloc_append(blocks, vector, _size)
             self.set(vector2, index - _size, value, cb)
           }
         })
@@ -166,36 +181,4 @@ module.exports = function (raf, block_size) {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
