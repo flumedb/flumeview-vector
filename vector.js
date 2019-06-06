@@ -1,9 +1,8 @@
+'use strict'
 var Blocks = require('./blocks')
 //reads data in blocks, into memory.
 //creates vectors in that, always keeping any vector
 //within a block.
-
-MEM = 0
 
 function get (block, vector, index) {
   if(size(block, vector) > index)
@@ -33,7 +32,6 @@ function alloc (block, size) {
   //check if there is enough room left
   var end = start + (size*4 + 8)
   //console.log('alloc size', size, MEM += size*4+8)
-  MEM += size*4+8
   if(start >= block.length) throw new Error('invalid free pointer:'+start)
   if(block.length >= end) {
   //  console.log("START,END,SIZE", start, end, size)
@@ -59,23 +57,22 @@ module.exports = function (raf, block_size) {
         if(!size) throw new Error('invalid size:'+size)
         //always alloc into the last block
         var block_index = blocks.last()
-        blocks.get(block_index, function next (err, block) {
-          var free = block.readUInt32LE(0) || 4
-          if(free == block_size) {
-            return blocks.get(block_index = blocks.last(), next)
-          }
-          var _size = ~~(size/2)
-          var max_size = (block_size - (free + 8)) / 4
+        var block = blocks.blocks[block_index]
+        var free = block.readUInt32LE(0) || 4
+        if(free == block_size) {
+          return blocks.get(block_index = blocks.last(), next)
+        }
+        var _size = ~~(size/2)
+        var max_size = (block_size - (free + 8)) / 4
 
-          var new_size = max_size < _size * 3 ? max_size : _size*2
-          if(new_size <= 0)
-            throw new Error('size too small, size:'+size+' remaining_size:'+remaining_size+' free:'+free)
-          var block_start = (block_index * block_size)
-          var _vector2 = alloc(block, new_size)
-          vector2 = block_start + _vector2
-          blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
-          cb(null, vector2)
-        })
+        var new_size = max_size < _size * 3 ? max_size : _size*2
+        if(new_size <= 0)
+          throw new Error('size too small, size:'+size+' remaining_size:'+remaining_size+' free:'+free)
+        var block_start = (block_index * block_size)
+        var _vector2 = alloc(block, new_size)
+        var vector2 = block_start + _vector2
+        blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
+        cb(null, vector2)
       })
     },
     get: function (vector, index, cb) {
@@ -132,7 +129,7 @@ module.exports = function (raf, block_size) {
               //but if that leaves a gap smaller than the last size, expand to the rest of the space.
               //otherwise, double the previous size
               var block_start = (block_index * block_size)
-                vector2 = block_start + alloc(block, max_size < _size * 3 ? max_size : _size*2)
+              var vector2 = block_start + alloc(block, max_size < _size * 3 ? max_size : _size*2)
               blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
 
               //write the next pointer in the previous vector
