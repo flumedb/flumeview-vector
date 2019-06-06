@@ -60,7 +60,7 @@ function alloc_new (blocks, size) {
 
   var new_size = max_size < _size * 3 ? max_size : _size*2
   if(new_size <= 0)
-    throw new Error('size too small, size:'+size+' remaining_size:'+remaining_size+' free:'+free)
+    throw new Error('size too small, size:'+size+' free:'+free)
   var block_start = (block_index * block_size)
   var _vector2 = alloc(block, new_size)
   var vector2 = block_start + _vector2
@@ -124,31 +124,22 @@ module.exports = function (raf, block_size) {
             //if a new vector will leave a too-small
             //gap at the end, just make this vector
             //bigger.
-
             //remaining space (within block) always written at start of block.
             var free = block.readUInt32LE(0) || 4
-            if(free < block_size) {
-              var max_size = ~~((block_size - free - 8)/4)
-              var ptr
-              //normally, double the vector size from last time
-              //but if that leaves a gap smaller than the last size, expand to the rest of the space.
-              //otherwise, double the previous size
-              var block_start = (block_index * block_size)
-              var vector2 = block_start + alloc(block, max_size < _size * 3 ? max_size : _size*2)
-              blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
+            var remaining = ~~((block_size - free - 8)/4)
+            //always fill one block before going to the next one.
+            //to avoid leaving small allocations at the end of a block,
+            //if an allocation will leave a smallish space, increase it's size to fill the block.
+            //normally, double the size of the vector from last time, but sometimes tripple it
+            //to fill the block.
 
-              //write the next pointer in the previous vector
-              block.writeUInt32LE(vector2, _vector + 4)
-              //call set again.
-              self.set(vector2, index-_size, value, cb)
-            }
-            else {
-              var block_start = block_size*(block_index+1)
-              var vector2 = alloc_new(blocks, _size*2)
-              blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
-              block.writeUInt32LE(vector2, _vector + 4)
-              self.set(vector2, index - _size, value, cb)
-            }
+            //if there is no space remaining in the block, next size is doubled, and allocation
+            //happens in a new block.
+            var vector2 = alloc_new(blocks, (remaining > 0 && remaining < _size * 3 ? remaining : _size*2))
+            //write the next pointer in the previous vector
+            block.writeUInt32LE(vector2, _vector + 4)
+            //call set again.
+            self.set(vector2, index - _size, value, cb)
           }
         })
       })
@@ -175,4 +166,36 @@ module.exports = function (raf, block_size) {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
