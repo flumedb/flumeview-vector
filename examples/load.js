@@ -76,8 +76,11 @@ log.stream()
   else
     vectors.set(map[author], sequence, data.seq, cb)
 }, function () {
-  vectors.size(function (err, size) {
-    console.log(size, Object.keys(map).length, C)
+  vectors.drain(function () {
+    console.log('written...')
+    vectors.size(function (err, size) {
+      console.log(size, Object.keys(map).length, C)
+    })
   })
 }))
 
