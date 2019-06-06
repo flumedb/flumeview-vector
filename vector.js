@@ -4,6 +4,9 @@ var Blocks = require('./blocks')
 //creates vectors in that, always keeping any vector
 //within a block.
 
+const B_HEADER = 4
+const V_HEADER = 8
+
 function get (block, vector, index) {
   if(size(block, vector) > index)
     return block.readUInt32LE(vector+8+index*4)
@@ -15,14 +18,13 @@ function size (block, vector) {
 }
 
 function next (block, vector, index) {
-//  console.log("next", vector + 4)
   return block.readUInt32LE(vector + 4)
 }
 
 function set(block, vector, index, value) {
   var size = block.readUInt32LE(vector)
   if(size > index)
-    return block.writeUInt32LE(value, vector+8+index*4)
+    return block.writeUInt32LE(value, vector+V_HEADER+index*4)
   return
 }
 
@@ -30,14 +32,14 @@ function alloc (block, size) {
   if(size < 1) throw new Error('size cannot be smaller than 1, was:'+size)
   var start = block.readUInt32LE(0) || 4
   //check if there is enough room left
-  var end = start + (size*4 + 8)
-  //console.log('alloc size', size, MEM += size*4+8)
+  var end = start + (size*4 + V_HEADER)
+  //console.log('alloc size', size, MEM += size*4+V_HEADER)
   if(start >= block.length) throw new Error('invalid free pointer:'+start)
   if(block.length >= end) {
   //  console.log("START,END,SIZE", start, end, size)
     block.writeUInt32LE(size, start)
     if(end > block.length) throw new Error('invalid end')
-    if(end < block.length && end > block.length - 12)
+    if(end < block.length && end > block.length - V_HEADER+4)
       throw new Error('gap too small:'+end)
     block.writeUInt32LE(end, 0)
     return start
@@ -45,35 +47,35 @@ function alloc (block, size) {
   else throw new Error('insufficient space remaining in block, remaining:' + block.length + ' requested end:'+end +', from start:'+start)
 }
 
-function alloc_new (blocks, size) {
+
+//allocate a new root vector, requested size, little smaller if necessary to fit into block.
+function alloc_new (blocks, _size) {
   if(!size) throw new Error('invalid size:'+size)
   //always alloc into the last block
   var block_index = blocks.last()
   var block_size = blocks.block_size
-  var block = blocks.blocks[block_index]
-  var free = block.readUInt32LE(0) || 4
-  if(free == block_size) {
-    return blocks.get(block_index = blocks.last(), next)
-  }
-  var _size = ~~(size/2)
-  var max_size = (block_size - (free + 8)) / 4
-
-  var new_size = max_size < _size * 3 ? max_size : _size*2
-  if(new_size <= 0)
-    throw new Error('size too small, size:'+size+' free:'+free)
   var block_start = (block_index * block_size)
-  var _vector2 = alloc(block, new_size)
-  var vector2 = block_start + _vector2
+  var block = blocks.blocks[block_index]
+  var free = block.readUInt32LE(0) || B_HEADER
+
+  var max_size = (block_size - (free + V_HEADER)) / 4
+  //+2 because that is enough room for the header of a vector.
+  var new_size = max_size <= _size * 1.5  ? max_size : _size
+  var vector2 = block_start + alloc(block, new_size)
+  if(new_size < 32) console.error('small vector:'+new_size+', after:'+_size)
   blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
   return vector2
 }
 
+//append a vector, including updating pointer from previous vector
 function alloc_append(blocks, vector) {
   var block_size = blocks.block_size
   var block_index = ~~(vector/block_size)
   //address of vector, relative to block
   var _vector = vector%block_size
-  var block = blocks.blocks[~~(vector/block_size)]
+  var block_index = ~~(vector/block_size)
+  var block = blocks.blocks[block_index]
+  if(!block) throw new Error('block:'+block_index+' was not ready before calling alloc_append')
   var _size = size(block, _vector)
 
   // always fill one block before going to the next one.
@@ -85,12 +87,11 @@ function alloc_append(blocks, vector) {
   // if there is no space remaining in the block, next size is doubled, and allocation
   // happens in a new block.
 
-  var free = block.readUInt32LE(0) || 4
-  var remaining = ~~((block_size - free - 8)/4)
-  var vector2 = alloc_new(blocks, (remaining > 0 && remaining < _size * 3 ? remaining : _size*2))
+  var free = block.readUInt32LE(0) || B_HEADER
+  var vector2 = alloc_new(blocks, _size*2)
   //write the next pointer in the previous vector
   block.writeUInt32LE(vector2, _vector + 4)
-  //block.writeUInt32LE(vector2, _vector + 4)
+
   return vector2
 }
 
@@ -142,19 +143,7 @@ module.exports = function (raf, block_size) {
             self.set(_next, index - _size, value, cb)
           }
           else {
-            if(false) {
-            var free = block.readUInt32LE(0) || 4
-            var remaining = ~~((block_size - free - 8)/4)
-
-            var vector2 = alloc_new(blocks, (remaining > 0 && remaining < _size * 3 ? remaining : _size*2))
-            //write the next pointer in the previous vector
-            block.writeUInt32LE(vector2, _vector + 4)
-
-            //call set again.
-            }
-            else
-              var vector2 = alloc_append(blocks, vector, _size)
-            self.set(vector2, index - _size, value, cb)
+            self.set(alloc_append(blocks, vector, _size), index - _size, value, cb)
           }
         })
       })
