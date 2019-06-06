@@ -4,6 +4,22 @@ var Blocks = require('./blocks')
 //creates vectors in that, always keeping any vector
 //within a block.
 
+/*
+  current design:
+    <vector: <size><next><data...>>
+
+  you always point to the first vector, then just log(n) vectors along to find the index.
+  since for the clock index, I certainly expect you would read the latest clocks more frequently,
+  it would be better to have a doubly linked list of vectors, and point to the last one.
+
+  better design:
+    <vector: <size><start><prev><next><data...>>
+
+  start is necessary becaus when you land on the vector, looking for a particular index
+  you need to know wether you should seek forward or backward.
+
+*/
+
 const B_HEADER = 4
 const V_HEADER = 8
 
@@ -170,4 +186,5 @@ module.exports = function (raf, block_size) {
     }
   }
 }
+
 
