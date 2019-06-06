@@ -11,7 +11,7 @@ tape('alloc, set, get', function (t) {
   v.alloc(32, function (err, _vector) {
     if(err) throw err
     vector = _vector
-    t.equal(vector, 4)
+    t.equal(vector, require('../constants').block)
     v.set(vector, 0, 7, function (err, _vector, _index) {
       if(err) throw err
       t.equal(_vector, vector)

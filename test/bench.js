@@ -24,8 +24,13 @@ var start = Date.now(), N = 500000
 
   function done (n, i, _v, ptr) {
     if(--m) return
-    console.log("DONE", Date.now() - start)
+    console.log('set', Date.now() - start)
+    v.drain(function () {
+      console.log("DONE", Date.now() - start)
+    })
   }
+
+
 
 
 
