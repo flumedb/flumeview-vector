@@ -41,7 +41,7 @@ module.exports = function (raf, block_size, magic_number) {
           }
           else block = _block
           if(block.readUInt32LE(0) !== magic_number) {
-            throw new Error('incorrect magic number')
+            //throw new Error('incorrect magic number')
             return raf.del(0, stat.size, reload)
           }
 
