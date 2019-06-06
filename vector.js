@@ -20,12 +20,16 @@ var Blocks = require('./blocks')
 
 */
 
-const B_HEADER = 4
-const V_HEADER = 8
+const constants = require('./constants')
+const MAGIC_NUMBER = constants.magic
+
+const B_HEADER = constants.block
+const V_HEADER = constants.vector
+const FREE     = constants.free
 
 function get (block, vector, index) {
   if(size(block, vector) > index)
-    return block.readUInt32LE(vector+8+index*4)
+    return block.readUInt32LE(vector+V_HEADER+index*4)
   return
 }
 
@@ -46,7 +50,7 @@ function set(block, vector, index, value) {
 
 function alloc (block, size) {
   if(size < 1) throw new Error('size cannot be smaller than 1, was:'+size)
-  var start = block.readUInt32LE(0) || 4
+  var start = block.readUInt32LE(FREE) || B_HEADER
   //check if there is enough room left
   var end = start + (size*4 + V_HEADER)
   //console.log('alloc size', size, MEM += size*4+V_HEADER)
@@ -57,7 +61,7 @@ function alloc (block, size) {
     if(end > block.length) throw new Error('invalid end')
     if(end < block.length && end > block.length - V_HEADER+4)
       throw new Error('gap too small:'+end)
-    block.writeUInt32LE(end, 0)
+    block.writeUInt32LE(end, FREE)
     return start
   }
   else throw new Error('insufficient space remaining in block, remaining:' + block.length + ' requested end:'+end +', from start:'+start)
@@ -72,14 +76,15 @@ function alloc_new (blocks, _size) {
   var block_size = blocks.block_size
   var block_start = (block_index * block_size)
   var block = blocks.blocks[block_index]
-  var free = block.readUInt32LE(0) || B_HEADER
+  var free = block.readUInt32LE(FREE) || B_HEADER
 
   var max_size = (block_size - (free + V_HEADER)) / 4
   //+2 because that is enough room for the header of a vector.
   var new_size = max_size <= _size * 1.5  ? max_size : _size
   var vector2 = block_start + alloc(block, new_size)
   if(new_size < 32) console.error('small vector:'+new_size+', after:'+_size)
-  blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(0))
+  blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(FREE))
+  blocks.dirty(block_index)
   return vector2
 }
 
@@ -103,10 +108,11 @@ function alloc_append(blocks, vector) {
   // if there is no space remaining in the block, next size is doubled, and allocation
   // happens in a new block.
 
-  var free = block.readUInt32LE(0) || B_HEADER
+  var free = block.readUInt32LE(FREE) || B_HEADER
   var vector2 = alloc_new(blocks, _size*2)
   //write the next pointer in the previous vector
   block.writeUInt32LE(vector2, _vector + 4)
+  blocks.dirty(block_index)
 
   return vector2
 }
@@ -114,7 +120,7 @@ function alloc_append(blocks, vector) {
 module.exports = function (raf, block_size) {
   block_size = block_size || 65536
   var self
-  var blocks = Blocks(raf, block_size)
+  var blocks = Blocks(raf, block_size, MAGIC_NUMBER)
 
   return self = {
     ready: blocks.ready,
@@ -146,12 +152,13 @@ module.exports = function (raf, block_size) {
         //address of vector, relative to block
         var _vector = vector%block_size
         blocks.get(block_index, function (err, block) {
-          if(!block.readUInt32LE(0)) throw new Error('block missing free pointer')
+          if(!block.readUInt32LE(FREE)) throw new Error('block missing free pointer')
           var _size = size(block, _vector)
           if(!_size) throw new Error('zero size vector '+_vector)
           var _next = next(block, _vector)
           if(_size > index) {
             set(block, _vector, index, value)
+            blocks.dirty(block_index)
             cb(null, vector, index)
           }
           else if(_next) {
@@ -183,8 +190,8 @@ module.exports = function (raf, block_size) {
             cb(null, data)
         })
       })(vector)
-    }
+    },
+    drain: blocks.drain
   }
 }
-
 
