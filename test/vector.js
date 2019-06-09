@@ -50,15 +50,18 @@ tape('set, get 2', function (t) {
 tape('allocate via set', function (t) {
   //the first vector is 32 spaces, setting to slot 32
   //should allocate a 2nd vector 64 spaces, and set index 0
+  //but getting from the second vector should know this vector starts at 32
+  //and return the same value.
+
   v.set(vector, 32, 19, function (err, vector2, index) {
     if(err) throw err
     t.notEqual(vector2, vector)
-    t.equal(index, 0)
+    t.equal(index, 32)
     v.get(vector, 32, function (err, _19) {
       if(err) throw err
-      v.get(vector2, 0, function (err, __19) {
+      v.get(vector2, 32, function (err, __19) {
         if(err) throw err
-        t.equal(_19, _19)
+        t.equal(_19, __19)
         t.equal(_19, 19)
         t.end()
       })
@@ -68,16 +71,32 @@ tape('allocate via set', function (t) {
 
 tape('allocate into next block', function (t) {
   //the first vector is 32 spaces, setting to slot 32
-  //should allocate a 2nd vector 64 spaces, and set index 0
   v.set(vector, 128, 23, function (err, vector2, index) {
     if(err) throw err
     console.log('v2', vector2)
-    v.set(vector, 256, 23, function (err, vector2, index) {
+    v.set(vector, 256, 23, function (err, vector3, index) {
       if(err) throw err
       console.log('v2', vector2)
       v.get(vector, 256, function (err, _23) {
+        if(err) throw err
         t.deepEqual(_23, 23)
-        t.end()
+        v.get(vector2, 256, function (err, _23) {
+          if(err) throw err
+          t.deepEqual(_23, 23)
+          v.set(vector2, 256, 29, function (err) {
+            if(err) throw err
+            t.notEqual(vector3, vector2)
+            v.get(vector, 256, function (err, _29) {
+              if(err) throw err
+              t.equal(_29, 29)
+              //seek backwards to vector2
+              v.get(vector3, 128, function (err, _23) {
+                t.equal(_23, 23)
+                t.end()
+              })
+            })
+          })
+        })
       })
     })
   })
@@ -105,5 +124,3 @@ tape('allocate multiple blocks', function (t) {
 
   })
 })
-
-
