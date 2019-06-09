@@ -16,10 +16,14 @@ tape('alloc, set, get', function (t) {
       if(err) throw err
       t.equal(_vector, vector)
       t.equal(_index, 0)
-      v.get(vector, 0, function (err, seven) {
+      v.length(vector, function (err, length) {
         if(err) throw err
-        t.equal(seven, 7)
-        t.end()
+        t.equal(length, 1)
+        v.get(vector, 0, function (err, seven) {
+          if(err) throw err
+          t.equal(seven, 7)
+          t.end()
+        })
       })
     })
   })
@@ -57,13 +61,17 @@ tape('allocate via set', function (t) {
     if(err) throw err
     t.notEqual(vector2, vector)
     t.equal(index, 32)
-    v.get(vector, 32, function (err, _19) {
+    v.length(vector, function (err, length) {
       if(err) throw err
-      v.get(vector2, 32, function (err, __19) {
+      t.equal(length, 33)
+      v.get(vector, 32, function (err, _19) {
         if(err) throw err
-        t.equal(_19, __19)
-        t.equal(_19, 19)
-        t.end()
+        v.get(vector2, 32, function (err, __19) {
+          if(err) throw err
+          t.equal(_19, __19)
+          t.equal(_19, 19)
+          t.end()
+        })
       })
     })
   })
