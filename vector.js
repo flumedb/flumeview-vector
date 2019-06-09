@@ -25,6 +25,9 @@ const MAGIC_NUMBER = constants.magic
 
 const B_HEADER = constants.block
 const V_HEADER = constants.vector
+const V_NEXT = constants.next
+const V_PREV = constants.prev
+const V_START = constants.start
 const FREE     = constants.free
 
 function get (block, vector, index) {
@@ -37,8 +40,16 @@ function size (block, vector) {
   return block.readUInt32LE(vector)
 }
 
+function start (block, vector) {
+  return block.readUInt32LE(vector + V_START)
+}
+
 function next (block, vector, index) {
-  return block.readUInt32LE(vector + 4)
+  return block.readUInt32LE(vector + V_NEXT)
+}
+
+function prev (block, vector, index) {
+  return block.readUInt32LE(vector + V_PREV)
 }
 
 function set(block, vector, index, value) {
@@ -53,11 +64,9 @@ function alloc (block, size) {
   var start = block.readUInt32LE(FREE) || B_HEADER
   //check if there is enough room left
   var end = start + (size*4 + V_HEADER)
-  //console.log('alloc size', size, MEM += size*4+V_HEADER)
   if(start >= block.length) throw new Error('invalid free pointer:'+start)
   if(block.length >= end) {
-  //  console.log("START,END,SIZE", start, end, size)
-    block.writeUInt32LE(size, start)
+    block.writeUInt32LE(size, start) //size of this vector
     if(end > block.length) throw new Error('invalid end')
     if(end < block.length && end > block.length - V_HEADER+4)
       throw new Error('gap too small:'+end)
@@ -69,7 +78,7 @@ function alloc (block, size) {
 
 
 //allocate a new root vector, requested size, little smaller if necessary to fit into block.
-function alloc_new (blocks, _size) {
+function alloc_new (blocks, _size, prev_vector, start) {
   if(!size) throw new Error('invalid size:'+size)
   //always alloc into the last block
   var block_index = blocks.last()
@@ -82,6 +91,10 @@ function alloc_new (blocks, _size) {
   //+2 because that is enough room for the header of a vector.
   var new_size = max_size <= _size * 1.5  ? max_size : _size
   var vector2 = block_start + alloc(block, new_size)
+
+  block.writeUInt32LE(prev_vector, vector2%block_size + V_PREV)
+  block.writeUInt32LE(start, vector2%block_size + V_START)
+
   if(new_size < 32) console.error('small vector:'+new_size+', after:'+_size)
   blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(FREE))
   blocks.dirty(block_index)
@@ -109,7 +122,7 @@ function alloc_append(blocks, vector) {
   // happens in a new block.
 
   var free = block.readUInt32LE(FREE) || B_HEADER
-  var vector2 = alloc_new(blocks, _size*2)
+  var vector2 = alloc_new(blocks, _size*2, vector, start(block, _vector) + _size)
   //write the next pointer in the previous vector
   block.writeUInt32LE(vector2, _vector + 4)
   blocks.dirty(block_index)
@@ -135,38 +148,52 @@ module.exports = function (raf, block_size) {
         //address of vector, relative to block
         var _vector = vector%block_size
         blocks.get(block_index, function (err, block) {
+          if(err) return cb(err)
           var _size = size(block, _vector)
+          var _start = start(block, _vector)
           var _next = next(block, _vector)
-          if(_size > index) cb(null, get(block, _vector, index))
+          var _prev = prev(block, _vector)
+          var _index = index - _start
+          if(_index < 0) {
+            self.get(_prev, index, cb)
+          }
+          else if(_size > _index) cb(null, get(block, _vector, _index))
           else if(_next) {
             //TODO: optimize for case where next is within this same block
-            self.get(_next, index - _size, cb)
+            self.get(_next, index, cb)
           }
           else cb(new Error('not found'))
         })
       })
     },
     set: function (vector, index, value, cb) {
+      if(vector == 0) return cb(new Error('cannot set to from null vector:'+vector))
+      if(index < 0) return cb(new Error('index' + index + ' must be >= 0'))
+
       blocks.ready(function () {
         var block_index = ~~(vector/block_size)
         //address of vector, relative to block
         var _vector = vector%block_size
         blocks.get(block_index, function (err, block) {
           if(!block.readUInt32LE(FREE)) throw new Error('block missing free pointer')
-          var _size = size(block, _vector)
+          var _start = start(block, _vector)
+          var _next, _size = size(block, _vector)
+          var _index = index - _start
           if(!_size) throw new Error('zero size vector '+_vector)
-          var _next = next(block, _vector)
-          if(_size > index) {
-            set(block, _vector, index, value)
+
+          if(_index < 0)
+            self.set(prev(block, _vector), index, value, cb)
+          else if(_size > _index) {
+            set(block, _vector, _index, value)
             blocks.dirty(block_index)
             cb(null, vector, index)
           }
-          else if(_next) {
+          else if(_next = next(block, _vector)) {
             //TODO: optimize for case where next is within this same block
-            self.set(_next, index - _size, value, cb)
+            self.set(_next, index, value, cb)
           }
           else {
-            self.set(alloc_append(blocks, vector, _size), index - _size, value, cb)
+            self.set(alloc_append(blocks, vector, _size), index, value, cb)
           }
         })
       })
@@ -194,4 +221,3 @@ module.exports = function (raf, block_size) {
     drain: blocks.drain
   }
 }
-
