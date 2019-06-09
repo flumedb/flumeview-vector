@@ -14,6 +14,10 @@ var start = Date.now(), N = 500000
       ;(function next (n, _v) {
         if(n >= N/M) return done(n, i, _v, ptr)
         v.set(ptr, n, n*i, function (err, _v) {
+          //this line makes it twice as fast
+          //because it remembers the latest vector
+          //makes more often constant than log.
+          ptr = _v
           setImmediate(function () {
             next(n+1, _v)
           })
@@ -29,10 +33,3 @@ var start = Date.now(), N = 500000
       console.log("DONE", Date.now() - start)
     })
   }
-
-
-
-
-
-
-
