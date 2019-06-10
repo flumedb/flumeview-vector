@@ -222,9 +222,7 @@ module.exports = function (raf, block_size) {
     },
     //add a value to the end of a vector. much like [].push()
     append: function (vector, value, cb) {
-      console.log("APPEND", vector, value)
       self.length(vector, function (err, i) {
-        console.log('APPEND_length', i)
         if(err) cb(err)
         else self.set(vector, i, value, cb)
       })
