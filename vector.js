@@ -1,5 +1,6 @@
 'use strict'
 var Blocks = require('./blocks')
+var Stream = require('./stream')
 //reads data in blocks, into memory.
 //creates vectors in that, always keeping any vector
 //within a block.
@@ -28,6 +29,7 @@ const V_HEADER = constants.vector
 const V_NEXT = constants.next
 const V_PREV = constants.prev
 const V_START = constants.start
+const V_LENGTH = constants.length
 const FREE     = constants.free
 
 function get (block, vector, index) {
@@ -52,10 +54,18 @@ function prev (block, vector, index) {
   return block.readUInt32LE(vector + V_PREV)
 }
 
+function length (block, vector, index) {
+  return block.readUInt32LE(vector + V_LENGTH)
+}
+
 function set(block, vector, index, value) {
   var size = block.readUInt32LE(vector)
-  if(size > index)
-    return block.writeUInt32LE(value, vector+V_HEADER+index*4)
+  var last = block.readUInt32LE(vector+V_LENGTH)
+  if(size > index) {
+    block.writeUInt32LE(value, vector+V_HEADER+index*4)
+    if(index >= last)
+      block.writeUInt32LE(index+1,vector+V_LENGTH)
+  }
   return
 }
 
@@ -198,6 +208,27 @@ module.exports = function (raf, block_size) {
         })
       })
     },
+    length: function (vector, cb) {
+      blocks.ready(function () {
+        var block_index = ~~(vector/block_size)
+        //address of vector, relative to block
+        blocks.get(block_index, function (err, block) {
+          var _vector = vector%block_size
+          var _next = next(block, _vector)
+          if(_next) return self.length(_next, cb)
+          else cb(null, start(block, _vector) + length(block, _vector))
+        })
+      })
+    },
+    //add a value to the end of a vector. much like [].push()
+    append: function (vector, value, cb) {
+      console.log("APPEND", vector, value)
+      self.length(vector, function (err, i) {
+        console.log('APPEND_length', i)
+        if(err) cb(err)
+        else self.set(vector, i, value, cb)
+      })
+    },
     size: function (cb) {
       cb(null, blocks.length * block_size)
     },
@@ -218,6 +249,9 @@ module.exports = function (raf, block_size) {
         })
       })(vector)
     },
-    drain: blocks.drain
+    drain: blocks.drain,
+    stream: function (opts) {
+      return new Stream(opts, self)
+    }
   }
 }
