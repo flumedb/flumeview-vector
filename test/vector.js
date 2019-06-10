@@ -12,17 +12,21 @@ tape('alloc, set, get', function (t) {
     if(err) throw err
     vector = _vector
     t.equal(vector, require('../constants').block)
-    v.set(vector, 0, 7, function (err, _vector, _index) {
+    v.length(vector, function (err, zero) {
       if(err) throw err
-      t.equal(_vector, vector)
-      t.equal(_index, 0)
-      v.length(vector, function (err, length) {
+      t.equal(zero, 0)
+      v.set(vector, 0, 7, function (err, _vector, _index) {
         if(err) throw err
-        t.equal(length, 1)
-        v.get(vector, 0, function (err, seven) {
+        t.equal(_vector, vector)
+        t.equal(_index, 0)
+        v.length(vector, function (err, length) {
           if(err) throw err
-          t.equal(seven, 7)
-          t.end()
+          t.equal(length, 1)
+          v.get(vector, 0, function (err, seven) {
+            if(err) throw err
+            t.equal(seven, 7)
+            t.end()
+          })
         })
       })
     })
