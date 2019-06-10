@@ -1,6 +1,6 @@
 var Obv         = require('obv')
 var pull        = require('pull-stream')
-var AtomicFile  = require('atomic-file')
+var AtomicFile  = require('atomic-file/buffer')
 var HashTable   = require('./hashtable')
 var path        = require('path')
 var mkdirp      = require('mkdirp')
@@ -76,7 +76,7 @@ module.exports = function (version, hash, each) {
               var vec = ht.get(_key)
               if(!vec) {
                 //allocating a *new buffer* is always sync, once loaded.
-                vectors.alloc(8, function (err, vec) {
+                vectors.alloc(32, function (err, vec) {
                   ht.set(_key, vec)
                   if(ht.get(_key) != vec) throw new Error('set failed')
                   vectors.append(vec, seq+1, next)
