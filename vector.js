@@ -105,7 +105,7 @@ function alloc_new (blocks, _size, prev_vector, start) {
   block.writeUInt32LE(prev_vector, vector2%block_size + V_PREV)
   block.writeUInt32LE(start, vector2%block_size + V_START)
 
-  if(new_size < 32) console.error('small vector:'+new_size+', after:'+_size)
+  //if(new_size < 32) console.error('small vector:'+new_size+', after:'+_size)
   blocks.free = Math.max(blocks.free, block_start + block.readUInt32LE(FREE))
   blocks.dirty(block_index)
   return vector2

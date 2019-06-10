@@ -65,7 +65,6 @@ module.exports = function (buffer) {
       var i = key
       do {
         var slot = getSlot(i, slots)
-        console.log('get:', key, '->', slot, slots)
         var _key = buffer.readUInt32LE(slot)
         if(_key == 0) return 0
         else if(_key === key) return buffer.readUInt32LE(slot + 4)
@@ -79,7 +78,6 @@ module.exports = function (buffer) {
         var key = buffer.readUInt32LE(HEADER + i*8)
         if(key) {
           var value = buffer.readUInt32LE(HEADER + i*8 + 4)
-          console.log("REHASH", i, key, value)
           insert(_buffer, slots2, key ,value)
         }
       }
