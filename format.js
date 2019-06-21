@@ -17,7 +17,7 @@ function Format (block_size) {
 
 Format.prototype.get =
 function get (block, vector, index) {
-  var _vector = ~~(vector/this.block_size)
+  var _vector = vector%this.block_size
   if(this.size(block, _vector) > index)
     return block.readUInt32LE(_vector+V_HEADER+index*4)
   return
@@ -25,31 +25,31 @@ function get (block, vector, index) {
 
 Format.prototype.size =
 function size (block, vector) {
-  return block.readUInt32LE(~~(vector/this.block_size))
+  return block.readUInt32LE(vector%this.block_size)
 }
 Format.prototype.start =
 function start (block, vector) {
-  return block.readUInt32LE(~~(vector/this.block_size) + V_START)
+  return block.readUInt32LE(vector%this.block_size + V_START)
 }
 
 Format.prototype.next =
 function next (block, vector, index) {
-  return block.readUInt32LE(~~(vector/this.block_size) + V_NEXT)
+  return block.readUInt32LE(vector%this.block_size + V_NEXT)
 }
 
 Format.prototype.prev =
 function prev (block, vector, index) {
-  return block.readUInt32LE(~~(vector/this.block_size) + V_PREV)
+  return block.readUInt32LE(vector%this.block_size + V_PREV)
 }
 
 Format.prototype.length =
 function length (block, vector, index) {
-  return block.readUInt32LE(~~(vector/this.block_size) + V_LENGTH)
+  return block.readUInt32LE(vector%this.block_size + V_LENGTH)
 }
 
 Format.prototype.set =
 function set(block, vector, index, value) {
-  var _vector = ~~(vector/this.block_size)
+  var _vector = vector%this.block_size
   var size = block.readUInt32LE(_vector)
   var last = block.readUInt32LE(_vector+V_LENGTH)
   if(size > index) {
