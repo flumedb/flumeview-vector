@@ -37,8 +37,11 @@ function addEverything (buf, seq, add, path) {
   if(~p)
     bipf.iterate(buf, p, function (_, _value, _key) {
 //      console.log('length', bipf.getEncodedType(buf, _value) == bipf.types.string, bipf.getEncodedLength(buf, _value))
-      if(bipf.getEncodedType(buf, _value) == 0 && bipf.getEncodedLength(buf, _value) < 100)
-        add('.'+bipf.decode(buf, _key) + ':' + bipf.decode(buf, _value))
+      if(bipf.getEncodedType(buf, _value) == 0 && bipf.getEncodedLength(buf, _value) < 100) {
+        var __key = '.'+bipf.decode(buf, _key) + ':' + bipf.decode(buf, _value)
+        add(__key)
+//        console.log(__key)
+      }
     })
 }
 
@@ -82,3 +85,27 @@ function done () {
 //  console.log("DONE", Date.now() - start)
   start = Date.now()
 }
+
+db.vec.since(function (v) {
+  if(v !== db.since.value) return
+    setImmediate(function () {
+  //    console.log("sync")
+//      var k = '.root:%0/JiKc99TG3lbJImZJir3hu89UABOlicjs6QAPug6ow=.sha256'
+//      var k = '.channel:patchwork'
+      var k = '.type:post'
+      var C = 0, L = 0
+      var start = Date.now()
+      ;(function next (i) {
+        db.vec.get({key:k, index: i}, function (err, data, seq) {
+          if(err && i === 0) throw err
+          else if(!data && i >= 0) return console.log("GOT", C, L, Date.now() - start)
+//          console.log('get', err, data)
+  //        if(err) throw err
+          C ++
+          L += data.length
+//          console.log(data.length, seq)
+          next(i+1)
+        })
+      })(0)
+    })
+})
