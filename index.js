@@ -1,3 +1,4 @@
+'use strict'
 var Obv         = require('obv')
 var pull        = require('pull-stream')
 var AtomicFile  = require('atomic-file/buffer')
