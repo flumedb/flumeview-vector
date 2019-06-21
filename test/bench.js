@@ -104,7 +104,9 @@ db.vec.since(function (v) {
           C ++
           L += data.length
 //          console.log(data.length, seq)
-          next(i+1)
+          setImmediate(function () {
+            next(i+1)
+          })
         })
       })(0)
     })
