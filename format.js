@@ -1,6 +1,25 @@
 const constants = require('./constants')
 const MAGIC_NUMBER = constants.magic
 
+/*
+  all fields are UInt32LE
+
+  <vector: <size><start><prev><next><data...>>
+
+  * size, size of this vector (item count)
+  * start, index this vector starts at
+  * prev, pointer to previous vector
+  * next, pointer to next vector
+  * data..., {size} 32 bit values
+
+  start is necessary because when you land on the vector, looking for a particular index
+  you need to know wether you should seek forward or backward.
+
+  it's expected that the next vector is larger and the prev vector is smaller,
+  but should work either way, if they are the same size, complexity becomes linear instead of log.
+
+
+*/
 module.exports = Format
 
 const B_HEADER = constants.block

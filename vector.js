@@ -7,22 +7,6 @@ var Stream = require('./stream')
 
 var Format = require('./format')
 
-/*
-  current design:
-    <vector: <size><next><data...>>
-
-  you always point to the first vector, then just log(n) vectors along to find the index.
-  since for the clock index, I certainly expect you would read the latest clocks more frequently,
-  it would be better to have a doubly linked list of vectors, and point to the last one.
-
-  better design:
-    <vector: <size><start><prev><next><data...>>
-
-  start is necessary becaus when you land on the vector, looking for a particular index
-  you need to know wether you should seek forward or backward.
-
-*/
-
 const constants    = require('./constants')
 const MAGIC_NUMBER = constants.magic
 const FREE     = constants.free
@@ -30,69 +14,6 @@ const B_HEADER = constants.block
 const V_HEADER = constants.vector
 const V_PREV   = constants.prev
 const V_START  = constants.start
-/*
-const B_HEADER = constants.block
-const V_HEADER = constants.vector
-const V_NEXT   = constants.next
-const V_PREV   = constants.prev
-const V_START  = constants.start
-const V_LENGTH = constants.length
-const FREE     = constants.free
-
-function get (block, vector, index) {
-  if(size(block, vector) > index)
-    return block.readUInt32LE(vector+V_HEADER+index*4)
-  return
-}
-
-function size (block, vector) {
-  return block.readUInt32LE(vector)
-}
-
-function start (block, vector) {
-  return block.readUInt32LE(vector + V_START)
-}
-
-function next (block, vector, index) {
-  return block.readUInt32LE(vector + V_NEXT)
-}
-
-function prev (block, vector, index) {
-  return block.readUInt32LE(vector + V_PREV)
-}
-
-function length (block, vector, index) {
-  return block.readUInt32LE(vector + V_LENGTH)
-}
-
-function set(block, vector, index, value) {
-  var size = block.readUInt32LE(vector)
-  var last = block.readUInt32LE(vector+V_LENGTH)
-  if(size > index) {
-    block.writeUInt32LE(value, vector+V_HEADER+index*4)
-    if(index >= last)
-      block.writeUInt32LE(index+1,vector+V_LENGTH)
-  }
-  return
-}
-
-function alloc (block, size) {
-  if(size < 1) throw new Error('size cannot be smaller than 1, was:'+size)
-  var start = block.readUInt32LE(FREE) || B_HEADER
-  //check if there is enough room left
-  var end = start + (size*4 + V_HEADER)
-  if(start >= block.length) throw new Error('invalid free pointer:'+start)
-  if(block.length >= end) {
-    block.writeUInt32LE(size, start) //size of this vector
-    if(end > block.length) throw new Error('invalid end')
-    if(end < block.length && end > block.length - V_HEADER+4)
-      throw new Error('gap too small:'+end)
-    block.writeUInt32LE(end, FREE)
-    return start
-  }
-  else throw new Error('insufficient space remaining in block, remaining:' + block.length + ' requested end:'+end +', from start:'+start)
-}
-*/
 
 //allocate a new root vector, requested size, little smaller if necessary to fit into block.
 function alloc_new (blocks, _size, prev_vector, start, format) {
