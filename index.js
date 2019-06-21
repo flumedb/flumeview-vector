@@ -36,8 +36,7 @@ module.exports = function (version, hash, each) {
     mkdirp(dir, function (_) {
       af = AtomicFile(path.join(dir, 'hashtable.ht'))
       vectors = Vectors(PRAF(path.join(dir, 'vectors.vec'), {readable: true, writable: true}))
-      af.get(function (err, _value) {
-        value = _value// || {since: 0, value: {}}
+      af.get(function (err, value) {
         ht = HashTable().initialize(value || 65536)
         since.set(ht.buffer.readUInt32LE(0) - 1) //starts replication
       })
@@ -118,7 +117,10 @@ module.exports = function (version, hash, each) {
         vectors.get(vec, index, function (err, seq) {
           if(err || seq === 0)
             cb(err || new Error('not found:'+opts.key+'['+opts.index+']'))
-          log.get(seq - 1, cb)
+          else
+            log.get(seq - 1, function (err, data) {
+              cb(err, data, seq - 1)
+            })
         })
       },
       stream: function (opts) {
@@ -130,6 +132,7 @@ module.exports = function (version, hash, each) {
           vector.get(values[key], index++, function (err, seq) {
             if(err) cb(err)
             else if(seq == 0) cb(true)
+//            else cb(null, [], seq-1)
             else log.get(seq-1, cb)
           })
         }
