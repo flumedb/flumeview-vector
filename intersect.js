@@ -4,7 +4,6 @@
 var Cursor = require('./cursor')
 
 module.exports = function (blocks, vectors, reverse, each, done) {
-  console.log(arguments)
   if(!done) throw new Error('done cb is missing')
   var c = vectors.length //number of uninitialized cursors
   var cursors = vectors.map(function (vector) {
@@ -13,19 +12,6 @@ module.exports = function (blocks, vectors, reverse, each, done) {
 
   function intersect () {
     var max = 0
-//    for(var i = 0; i < cursors.length; i++) {
-//      var cursor = cursors[i]
-//      if(cursor.isEnded()) return console.log('ended')
-//      max = Math.max(cursor.next(), max)
-////      if(!max) {
-////        max = cursor.next()
-////      } else {
-////        var v = cursor.next()
-////        if(v === max)
-////          matches ++
-////      }
-//    }
-//
     //will return when hits something or needs a new block
     while(true) {
       var matched = 0
@@ -34,7 +20,7 @@ module.exports = function (blocks, vectors, reverse, each, done) {
           if(!cursors[i].block) throw new Error('intersect while block unset:'+i)
           cursor = cursors[i]
           if(cursor.isEnded()) return done()
-          //console.log('cursor', i, cursor.value, max)
+
           if(max == 0)
             max = cursor.next()
           else if(cursor.value > max) {
@@ -48,7 +34,6 @@ module.exports = function (blocks, vectors, reverse, each, done) {
           if(!cursor.block) return setImmediate(ready) //reload fields
         }
       }
-  //    console.log("MATCHED", cursors[0].value)
       each(cursors[0].value)
       //after a match, iterate everything forward
       var b = false
@@ -56,19 +41,16 @@ module.exports = function (blocks, vectors, reverse, each, done) {
         cursors[i].next()
         b = b || !cursors[i].block
       }
-//      console.log("new block?", b, cursors)
       if(b) return setImmediate(ready)
     }
   }
 
   function ready () {
-//    console.log("READY?")
     var c = 1
     for(var i = 0; i < cursors.length; i++) {
       var cursor = cursors[i]
       if(!cursor.block) (function (cursor) {
         c++
-  //      console.log("READY", i, cursor.block_index)
         blocks.get(cursor.block_index, function (err, block) {
           cursor.init(block)
           if(--c == 1) intersect()
