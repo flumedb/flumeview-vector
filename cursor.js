@@ -2,7 +2,7 @@ module.exports = Cursor
 
 var Format = require('./format')
 
-function Cursor(vector, block_size) {
+function Cursor(vector, block_size, reverse) {
   this.vector = vector
   this.block = null
   this.block_size = block_size
@@ -10,6 +10,7 @@ function Cursor(vector, block_size) {
   this.index = 0
   this._size = this._start = this._next = this._prev = 0
   this.format = new Format(block_size)
+  this.reverse = !!reverse
 }
 
 Cursor.prototype.init = function (block) {
@@ -20,6 +21,7 @@ Cursor.prototype.init = function (block) {
   this._length = this.format.length(block, _vector)
   this._next = this.format.next(block, _vector)
   this._prev = this.format.prev(block, _vector)
+  this.value = 0
 }
 
 //read the next item from the current block, shifting to the next vector
@@ -30,9 +32,8 @@ Cursor.prototype.next = function () {
   while(this.block) {
     var _index = this.index - this._start
     var _vector = this.vector%this.block_size
-
     //return zero if we have hit the end.
-    if(_index >= this._length && !this._next) return 0
+    if(this.isEnded()) return 0
 
     if(_index < 0) {
       //step to previous vector
@@ -43,22 +44,35 @@ Cursor.prototype.next = function () {
       this.vector = this.format.next(this.block, this.vector)
     }
     else {
-      var value = this.format.get(this.block, _vector, _index)
+      this.value = this.format.get(this.block, _vector, _index)
       this.index += this.reverse ? -1 : 1
-      return value
+      return this.value
     }
 
     //bail out of the loop if 
     if(~~(this.vector/this.block_size) !== this.block_index) {
       this.block_index = ~~(this.vector/this.block_size)
+      this.block = null
       return 0 //value can't be 0, that means empty space.
     }
     this.init(this.block) //update size, next, etc, while we are in the same block.
   }
 }
 
+Cursor.prototype.isEnded = function () {
+
+  return (
+    this.reverse
+    ? (this.index < 0 && !this._prev)
+    : (this.index - this._start) >= this._length  && !this._next
+  )
+}
+
 //seek to a value. either returns the index of the value
 //or ~index if not present, or null if need to load the next block.
 Cursor.prototype.seek = function (v) {
-
+  //check if the next value is equal to v
+  //check if the last value in current vector is equal to v
+  //if last value is smaller, seek to next vector
+  //if between, binary search within vector
 }
