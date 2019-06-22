@@ -68,11 +68,10 @@ function alloc_append(blocks, vector, format) {
   return vector2
 }
 
-module.exports = function (raf, block_size) {
+function inject (blocks, block_size) {
   block_size = block_size || 65536
   var format = new Format(block_size)
   var self
-  var blocks = Blocks(raf, block_size, MAGIC_NUMBER)
 
   return self = {
     ready: blocks.ready,
@@ -182,3 +181,10 @@ module.exports = function (raf, block_size) {
     }
   }
 }
+
+module.exports = function (raf, block_size) {
+  var blocks = Blocks(raf, block_size, MAGIC_NUMBER)
+  return inject(blocks, block_size)
+}
+
+module.exports.inject = inject
