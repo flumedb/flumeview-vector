@@ -88,15 +88,38 @@ function done () {
 
 db.vec.since(function (v) {
   if(v !== db.since.value) return
+  console.log('sync')
+  clearInterval(int)
     setImmediate(function () {
   //    console.log("sync")
-//      var k = '.root:%0/JiKc99TG3lbJImZJir3hu89UABOlicjs6QAPug6ow=.sha256'
+      var k_root = '.root:%0/JiKc99TG3lbJImZJir3hu89UABOlicjs6QAPug6ow=.sha256'
 //      var k = '.channel:patchwork'
       var k = '.type:post'
-      var C = 0, L = 0
-      var start = Date.now()
+      var C = 0, L = 0, _seq
+      var start = Date.now(), ts = Date.now()
+
+        db.vec.intersects({
+          keys: [
+            '.channel:solarpunk',
+//            k_root,
+            '.type:post'
+          ],
+          each: function (e) {
+            C++
+          },
+          done:function () {
+            console.log(C, Date.now() - start)
+          }
+        })
+
+      /*
       ;(function next (i) {
+        if(Date.now() > ts + 1000) {
+          ts = Date.now()
+          console.log(C, L, _seq, C / ((ts - start)/1000))
+        }
         db.vec.get({key:k, index: i}, function (err, data, seq) {
+          _seq = seq
           if(err && i === 0) throw err
           else if(!data && i >= 0) return console.log("GOT", C, L, Date.now() - start)
 //          console.log('get', err, data)
@@ -109,5 +132,6 @@ db.vec.since(function (v) {
           })
         })
       })(0)
+      */
     })
 })

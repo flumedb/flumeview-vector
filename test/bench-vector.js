@@ -31,5 +31,6 @@ var start = Date.now(), N = 500000
     console.log('set', Date.now() - start)
     v.drain(function () {
       console.log("DONE", Date.now() - start)
+      //v.cursor(v)
     })
   }
