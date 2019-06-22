@@ -11,7 +11,9 @@ const V_HEADER = constants.vector
 const FREE     = constants.free
 
 module.exports = function (raf, block_size, magic_number) {
-  if(!magic_number) throw new Error('non-zero magic number must be provided')
+  if(!magic_number)
+    magic_number = constants.magic
+ // if(!magic_number) throw new Error('non-zero magic number must be provided')
   //todo: make blocks be a cache, not store all blocks in memory.
   var blocks = []
   var dirty = {}, _dirty, writing
