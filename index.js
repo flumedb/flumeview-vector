@@ -8,6 +8,8 @@ var mkdirp      = require('mkdirp')
 var AsyncSingle = require('async-single')
 var Vectors     = require('./vector')
 var PRAF        = require('polyraf')
+var Intersects  = require('./intersect')
+var Blocks      = require('./blocks')
 /*
 the view takes a map and an array
 map[key] = [...]
@@ -27,16 +29,18 @@ use intersection (and) disjunction (or), etc operators to query, just
 by looking at the index values, not loading the records.
 */
 
+var block_size = 65536
 module.exports = function (version, hash, each) {
   return function (log, name) {
     var since = Obv()
     var af
     var dir = path.join(path.dirname(log.filename), name)
     var ht
-    var vectors
+    var vectors, blocks
     mkdirp(dir, function (_) {
       af = AtomicFile(path.join(dir, 'hashtable.ht'))
-      vectors = Vectors(PRAF(path.join(dir, 'vectors.vec'), {readable: true, writable: true}))
+      blocks = Blocks(PRAF(path.join(dir, 'vectors.vec'), {readable: true, writable: true}), block_size)
+      vectors = Vectors.inject(blocks, block_size)
       af.get(function (err, value) {
         ht = HashTable().initialize(value || 65536)
         since.set(ht.buffer.readUInt32LE(0) - 1) //starts replication
@@ -59,7 +63,8 @@ module.exports = function (version, hash, each) {
 
     return {
       methods: {
-        get: 'async', stream: 'source'
+        get: 'async', //stream: 'source'
+        intersects: 'sync'
       },
       since: since,
       //XXX TODO rewrite flume to use push-streams?
@@ -124,19 +129,23 @@ module.exports = function (version, hash, each) {
             })
         })
       },
-      stream: function (opts) {
-        var key = opts.key, index = opts.index || 0
-        if(!values[key]) return cb(new Error('key not found:'+key))
-        return function (abort, cb) {
-          if(abort) return cb(abort)
-          if(!values[key]) return cb(new Error('key not found:'+key))
-          vector.get(values[key], index++, function (err, seq) {
-            if(err) cb(err)
-            else if(seq == 0) cb(true)
-//            else cb(null, [], seq-1)
-            else log.get(seq-1, cb)
-          })
-        }
+      intersects: function (opts) {
+        return Intersects(blocks, opts.keys.map(function (key) {
+          return ht.get(hash(key))
+        }), false, opts.each, opts.done)
+
+//        var key = opts.key, index = opts.index || 0
+//        if(!values[key]) return cb(new Error('key not found:'+key))
+//        return function (abort, cb) {
+//          if(abort) return cb(abort)
+//          if(!values[key]) return cb(new Error('key not found:'+key))
+//          vector.get(values[key], index++, function (err, seq) {
+//            if(err) cb(err)
+//            else if(seq == 0) cb(true)
+////            else cb(null, [], seq-1)
+//            else log.get(seq-1, cb)
+//          })
+//        }
       }
     }
   }
