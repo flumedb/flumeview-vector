@@ -183,6 +183,7 @@ function inject (blocks, block_size) {
 }
 
 module.exports = function (raf, block_size) {
+  block_size = block_size || 65536
   var blocks = Blocks(raf, block_size, MAGIC_NUMBER)
   return inject(blocks, block_size)
 }
