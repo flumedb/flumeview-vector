@@ -1,3 +1,4 @@
+var pull     = require('pull-stream')
 var tape     = require('tape')
 var Flume    = require('flumedb')
 var crypto   = require('crypto')
@@ -48,6 +49,7 @@ var data = [{
 
 tape('initialize', function (t) {
   db.append(data, function (err, offset) {
+    console.log('offset', offset)
     if(err) throw err
     db.get(offset, function (err, value) {
       if(err) throw err
@@ -62,5 +64,27 @@ tape('initialize', function (t) {
         })
       })
     })
+  })
+})
+
+tape('stream', function (t) {
+  pull(db.stream({seqs: true}), pull.collect(function (err, ary) {
+    console.log(ary)
+    t.end()
+  }))
+})
+
+tape('intersect', function (t) {
+  var a = []
+  db.vec.intersects({
+    keys: ['.bar:baz', '.quux:okay'],
+    each: function (e) { a.push(e) },
+    done: function (e) {
+      db.get(a[0], function (err, _data) {
+        console.log(a, _data)
+        t.deepEqual(_data, data[0])
+        t.end()
+      })
+    }
   })
 })

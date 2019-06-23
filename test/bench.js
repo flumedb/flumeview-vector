@@ -98,13 +98,14 @@ db.vec.since(function (v) {
       var C = 0, L = 0, _seq
       var start = Date.now(), ts = Date.now()
 
-        db.vec.intersects({
+        var int = db.vec.intersects({
           keys: [
-            '.channel:solarpunk',
-//            k_root,
-            '.type:post'
+//            '.channel:solarpunk',
+            k_root,
+//            '.type:post'
           ],
           each: function (e) {
+            console.log(e)
             C++
           },
           done:function () {
