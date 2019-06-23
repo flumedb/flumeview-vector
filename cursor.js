@@ -2,6 +2,16 @@ module.exports = Cursor
 
 var Format = require('./format')
 
+/*
+  cursor which iterates over a vector.
+  it doesn't do any async.
+  This is to maximize determinism, which eases testing.
+  also closures and stuff tend to be slower.
+
+  
+
+*/
+
 function Cursor(vector, block_size, reverse) {
   this.vector = vector
   this.block = null
@@ -38,10 +48,12 @@ Cursor.prototype.next = function () {
     if(_index < 0) {
       //step to previous vector
       this.vector = this.format.prev(this.block, this.vector)
+      this.init(this.block) //update size, next, etc, while we are in the same block.
     }
     else if(this._size <= _index) {
       //step to next vector
       this.vector = this.format.next(this.block, this.vector)
+      this.init(this.block)
     }
     else {
       this.value = this.format.get(this.block, _vector, _index)
@@ -49,13 +61,12 @@ Cursor.prototype.next = function () {
       return this.value
     }
 
-    //bail out of the loop if 
+    //bail out of the loop if we need a new block
     if(~~(this.vector/this.block_size) !== this.block_index) {
       this.block_index = ~~(this.vector/this.block_size)
       this.block = null
       return 0 //value can't be 0, that means empty space.
     }
-    this.init(this.block) //update size, next, etc, while we are in the same block.
   }
 }
 
@@ -75,4 +86,17 @@ Cursor.prototype.seek = function (v) {
   //check if the last value in current vector is equal to v
   //if last value is smaller, seek to next vector
   //if between, binary search within vector
+}
+
+Cursor.prototype.update = function (blocks, cb) {
+  var async = true
+  if(this.block != null) throw new Error('updated when did not need update')
+  var self = this
+  blocks.get(this.block_index, function (err, block) {
+    async = false
+    self.init(block)
+    if(cb) cb()
+  })
+  //allow to be used sync, just for the tests....
+  if(async && !cb) throw new Error('call was async, but cb not provided')
 }
