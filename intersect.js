@@ -34,7 +34,7 @@ module.exports = function (blocks, vectors, reverse, each, done) {
           if(!cursor.block) return setImmediate(ready) //reload fields
         }
       }
-      each(cursors[0].value)
+      each(cursors[0].value - 1)
       //after a match, iterate everything forward
       var b = false
       for(var i = 0; i < cursors.length; i++) {
@@ -51,13 +51,15 @@ module.exports = function (blocks, vectors, reverse, each, done) {
       var cursor = cursors[i]
       if(!cursor.block) (function (cursor) {
         c++
-        blocks.get(cursor.block_index, function (err, block) {
-          cursor.init(block)
-          if(--c == 1) intersect()
-        })
+        blocks.get(cursor.block_index, done)
       })(cursor)
     }
-    if(c == 0) throw new Error('called ready() without any cursor needing loading')
+    done()
+    function done (_, block) {
+      if(block) cursor.init(block)
+      if(--c) return
+      intersect()
+    }
   }
 
   blocks.ready(ready)
