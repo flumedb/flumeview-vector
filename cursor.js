@@ -21,6 +21,7 @@ function Cursor(vector, block_size, reverse) {
   this._size = this._start = this._next = this._prev = 0
   this.format = new Format(block_size)
   this.reverse = !!reverse
+  this.matched = false //used by intersect
 }
 
 Cursor.prototype.init = function (block) {
