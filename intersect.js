@@ -21,7 +21,6 @@ module.exports = function (blocks, vectors, reverse, each, done) {
           return 0
         }
 
-          //throw new Error('intersect while block unset:'+i)
         cursor = cursors[i]
         if(cursor.isEnded()) {
           ended = true
@@ -36,9 +35,10 @@ module.exports = function (blocks, vectors, reverse, each, done) {
           max = cursor.value //skip over the other items now.
           matched = 1
         }
-        else if(cursor.value < max)
+        else if(cursor.value < max) {
           cursor.next()
-        else if(cursor.value === max && !cursor.matched) {
+          //TODO: step forward with bigger steps
+        } else if(cursor.value === max && !cursor.matched) {
           cursor.matched = true
           matched ++
         }
