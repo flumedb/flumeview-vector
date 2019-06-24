@@ -1,6 +1,6 @@
 module.exports = Cursor
 
-var format = require('./format')
+var Format = require('./format')
 
 /*
   cursor which iterates over a vector.
@@ -15,23 +15,26 @@ var format = require('./format')
 function Cursor(blocks, vector, reverse) {
   this.vector = vector
   this.block = null
+  if(!blocks.block_size) throw new Error('block_size undefined')
+  this._blocks = blocks
   this.block_size = blocks.block_size
   this.block_index = ~~(vector/blocks.block_size)
   this.index = 0
   this._size = this._start = this._next = this._prev = 0
   this.reverse = !!reverse
+  this.format = new Format(blocks.block_size)
   this.matched = false //used by intersect
 }
 
 Cursor.prototype.init = function (block) {
   this.block = block
-  var BS = this.block_size
+  var BS = this._blocks.block_size
   var _vector = this.vector%this.block_size
-  this._size   = format.size  (block, _vector, BS)
-  this._start  = format.start (block, _vector, BS)
-  this._length = format.length(block, _vector, BS)
-  this._next   = format.next  (block, _vector, BS)
-  this._prev   = format.prev  (block, _vector, BS)
+  this._size   = this.format.size  (block, _vector, BS)
+  this._start  = this.format.start (block, _vector, BS)
+  this._length = this.format.length(block, _vector, BS)
+  this._next   = this.format.next  (block, _vector, BS)
+  this._prev   = this.format.prev  (block, _vector, BS)
   this.value = 0
 }
 
@@ -48,26 +51,28 @@ Cursor.prototype.next = function () {
 
     if(_index < 0) {
       //step to previous vector
-      this.vector = format.prev(this.block, this.vector, this.block_size)
+      this.vector = this.format.prev(this.block, this.vector, this.block_size)
       this.init(this.block) //update size, next, etc, while we are in the same block.
     }
     else if(this._size <= _index) {
       //step to next vector
-      this.vector = format.next(this.block, this.vector, this.block_size)
+      this.vector = this.format.next(this.block, this.vector, this.block_size)
       this.init(this.block)
     }
     else {
-      this.value = format.get(this.block, _vector, _index, this.block_size)
+      this.value = this.format.get(this.block, _vector, _index, this.block_size)
       this.index += this.reverse ? -1 : 1
       return this.value
     }
 
     //bail out of the loop if we need a new block
     if(~~(this.vector/this.block_size) !== this.block_index) {
+      
       this.block_index = ~~(this.vector/this.block_size)
       this.block = null
       return 0 //value can't be 0, that means empty space.
     }
+
   }
 }
 
