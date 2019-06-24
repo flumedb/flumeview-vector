@@ -1,6 +1,6 @@
 module.exports = Cursor
 
-var Format = require('./format')
+var format = require('./format')
 
 /*
   cursor which iterates over a vector.
@@ -12,26 +12,26 @@ var Format = require('./format')
 
 */
 
-function Cursor(vector, block_size, reverse) {
+function Cursor(blocks, vector, reverse) {
   this.vector = vector
   this.block = null
-  this.block_size = block_size
-  this.block_index = ~~(vector/block_size)
+  this.block_size = blocks.block_size
+  this.block_index = ~~(vector/blocks.block_size)
   this.index = 0
   this._size = this._start = this._next = this._prev = 0
-  this.format = new Format(block_size)
   this.reverse = !!reverse
   this.matched = false //used by intersect
 }
 
 Cursor.prototype.init = function (block) {
   this.block = block
+  var BS = this.block_size
   var _vector = this.vector%this.block_size
-  this._size = this.format.size(block, _vector)
-  this._start = this.format.start(block, _vector)
-  this._length = this.format.length(block, _vector)
-  this._next = this.format.next(block, _vector)
-  this._prev = this.format.prev(block, _vector)
+  this._size   = format.size  (block, _vector, BS)
+  this._start  = format.start (block, _vector, BS)
+  this._length = format.length(block, _vector, BS)
+  this._next   = format.next  (block, _vector, BS)
+  this._prev   = format.prev  (block, _vector, BS)
   this.value = 0
 }
 
@@ -48,16 +48,16 @@ Cursor.prototype.next = function () {
 
     if(_index < 0) {
       //step to previous vector
-      this.vector = this.format.prev(this.block, this.vector)
+      this.vector = format.prev(this.block, this.vector, this.block_size)
       this.init(this.block) //update size, next, etc, while we are in the same block.
     }
     else if(this._size <= _index) {
       //step to next vector
-      this.vector = this.format.next(this.block, this.vector)
+      this.vector = format.next(this.block, this.vector, this.block_size)
       this.init(this.block)
     }
     else {
-      this.value = this.format.get(this.block, _vector, _index)
+      this.value = format.get(this.block, _vector, _index, this.block_size)
       this.index += this.reverse ? -1 : 1
       return this.value
     }
@@ -89,11 +89,11 @@ Cursor.prototype.seek = function (v) {
   //if between, binary search within vector
 }
 
-Cursor.prototype.update = function (blocks, cb) {
+Cursor.prototype.update = function (cb) {
   var async = true
   if(this.block != null) throw new Error('updated when did not need update')
   var self = this
-  blocks.get(this.block_index, function (err, block) {
+  this._blocks.get(this.block_index, function (err, block) {
     async = false
     self.init(block)
     if(cb) cb()
