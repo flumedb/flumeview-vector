@@ -47,7 +47,6 @@ module.exports = function (blocks, vectors, reverse, each, done) {
       }
     }
     var value = cursors[0].value
-//    console.log("next", max, matched, cursors.map(function (e) { return [e.index, e.value]}))
     //after a match, iterate everything forward
     var b = false
     for(var i = 0; i < cursors.length; i++) {
@@ -65,38 +64,6 @@ module.exports = function (blocks, vectors, reverse, each, done) {
     if(ended) done()
     else if(!block)
       setImmediate(ready)
-//    var max = 0
-//    //will return when hits something or needs a new block
-//    while(true) {
-//      var matched = 0
-//      while(matched < cursors.length) {
-//        for(var i = 0; i < cursors.length; i++) {
-//          if(!cursors[i].block) throw new Error('intersect while block unset:'+i)
-//          cursor = cursors[i]
-//          if(cursor.isEnded()) return done()
-//
-//          if(max == 0)
-//            max = cursor.next()
-//          else if(cursor.value > max) {
-//            max = cursor.value //skip over the other items now.
-//            matched = 1
-//          }
-//          else if(cursor.value < max)
-//            cursor.next()
-//          else if(cursor.value === max) matched ++
-//
-//          if(!cursor.block) return setImmediate(ready) //reload fields
-//        }
-//      }
-//      each(cursors[0].value - 1)
-//      //after a match, iterate everything forward
-//      var b = false
-//      for(var i = 0; i < cursors.length; i++) {
-//        cursors[i].next()
-//        b = b || !cursors[i].block
-//      }
-//      if(b) return setImmediate(ready)
-//    }
   }
 
   function ready () {
