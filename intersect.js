@@ -51,12 +51,13 @@ module.exports = function (blocks, vectors, reverse, each, done) {
       var cursor = cursors[i]
       if(!cursor.block) (function (cursor) {
         c++
-        blocks.get(cursor.block_index, done)
+        blocks.get(cursor.block_index, function (err, block) {
+          cursor.init(block); done()
+        })
       })(cursor)
     }
     done()
     function done (_, block) {
-      if(block) cursor.init(block)
       if(--c) return
       intersect()
     }
