@@ -93,28 +93,4 @@ Intersect.prototype.isEnded = function () {
   return this.ended
 }
 
-module.exports = function (blocks, vectors, reverse, each, done) {
-//  if(!done) throw new Error('done cb is missing')
-//  var c = vectors.length //number of uninitialized cursors
-  return new Intersect(blocks, vectors, reverse)
-//  function next () {
-//    return int.next()
-//  }
-//
-//  function intersect () {
-//    var v
-//    if(int.isEnded()) done()
-//    else if(!int.block)
-//      update(blocks, intersect)
-//  }
-//
-//  function update (blocks, cb) {
-//    int.update(blocks, cb)
-//  }
-//
-//  blocks.ready(function () {
-//    update(blocks, intersect)
-//  })
-//
-  return int
-}
+module.exports = Intersect

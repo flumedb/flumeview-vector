@@ -8,7 +8,7 @@ var mkdirp      = require('mkdirp')
 var AsyncSingle = require('async-single')
 var Vectors     = require('./vector')
 var PRAF        = require('polyraf')
-var Intersects  = require('./intersect')
+var Intersect   = require('./intersect')
 var Blocks      = require('./blocks')
 /*
 the view takes a map and an array
@@ -130,22 +130,12 @@ module.exports = function (version, hash, each) {
         })
       },
       intersects: function (opts) {
-        return Intersects(blocks, opts.keys.map(function (key) {
+        new Intersect(blocks, opts.keys.map(function (key) {
           return ht.get(hash(key))
-        }), false, opts.each, opts.done)
-
-//        var key = opts.key, index = opts.index || 0
-//        if(!values[key]) return cb(new Error('key not found:'+key))
-//        return function (abort, cb) {
-//          if(abort) return cb(abort)
-//          if(!values[key]) return cb(new Error('key not found:'+key))
-//          vector.get(values[key], index++, function (err, seq) {
-//            if(err) cb(err)
-//            else if(seq == 0) cb(true)
-////            else cb(null, [], seq-1)
-//            else log.get(seq-1, cb)
-//          })
-//        }
+        }), false)
+        .pipe({
+          write: opts.each, end: opts.done
+        })
       }
     }
   }
