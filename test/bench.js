@@ -100,9 +100,9 @@ db.vec.since(function (v) {
 
         var int = db.vec.intersects({
           keys: [
-//            '.channel:solarpunk',
-            k_root,
-//            '.type:post'
+            '.channel:solarpunk',
+//            k_root,
+            '.type:post'
           ],
           each: function (e) {
             console.log(e)

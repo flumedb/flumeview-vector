@@ -31,23 +31,25 @@ tape('init', function (t) {
   blocks.ready(function () {
     v.alloc(32, function (err, _vector) {
       vector = _vector
-      c = new Cursor(vector, BS)
-      c2 = new Cursor(vector, BS)
+      c = new Cursor(blocks, vector)
+      c2 = new Cursor(blocks, vector)
       t.end()
     })
   })
 })
 
 tape('alloc, set, get', function (t) {
-  c.init(blocks.blocks[0])
+  console.log("ALLOC?")
   t.equal(c.index, 0)
+  c.init(blocks.blocks[0])
   t.equal(c.next(), 0)
   t.equal(c.index, 0, 'index')
+  console.log("ALLOC")
   v.set(vector, 0, 1, function () {
     c.init(blocks.blocks[0])
     t.equal(c.next(), 1)
     t.equal(c.index, 1)
-
+    console.log("SET")
     count(vector, 2, 100, function (err) {
       if(err) throw err
       c.init(blocks.blocks[0])
@@ -59,7 +61,7 @@ tape('alloc, set, get', function (t) {
     })
   })
 })
-
+return
 tape('more vectors', function (t) {
   count(vector, 102, 200, function (err, _vector) {
     if(err) throw err
@@ -89,7 +91,7 @@ tape('reverse', function (t) {
   }
 //  console.log(c2)
   //-----------------
-  var c3 = new Cursor(vector, BS, true)
+  var c3 = new Cursor(blocks, vector, true)
   c3.index = a.length-1
   c3.init(blocks.blocks[0])
   var v = c3.next()
