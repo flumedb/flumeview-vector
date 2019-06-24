@@ -8,7 +8,7 @@ CursorStream.prototype.resume = function () {
   var self = this
   if(this.sink.paused) return
   while(!this.sink.paused && (v = this.next()))
-    this.sink.write(v)
+    this.sink.write(v - 1)
 
   if(this.isEnded()) this.sink.end()
   else if(!this.block)
