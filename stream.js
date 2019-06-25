@@ -7,12 +7,13 @@ function CursorStream() {
 
 CursorStream.prototype.resume = function () {
   if(this._resuming) return //prevent re-entrancy
-  this._resuming = true
 
   var self = this
   if(this.sink.paused) return
-  while(!this.sink.paused && (v = this.next()))
+  this._resuming = true
+  while(!this.sink.paused && (v = this.next())) {
     this.sink.write(v - 1)
+  }
 
   this._resuming = false
 
