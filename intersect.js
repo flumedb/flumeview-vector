@@ -5,9 +5,13 @@ var Cursor = require('./cursor')
 var CursorStream = require('./stream')
 
 function Intersect (blocks, vectors, reverse) {
+  if(vectors.length === 1)
+    return new Cursor(blocks, vectors[0], reverse)
+
   this.cursors = vectors.map(function (v) {
     return new Cursor(blocks, v, reverse)
   })
+
   this.block = false
   this.value = 0
   this.ended = false
