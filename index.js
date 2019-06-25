@@ -10,6 +10,7 @@ var Vectors     = require('./vector')
 var PRAF        = require('polyraf')
 var Intersect   = require('./intersect')
 var Blocks      = require('./blocks')
+var PushAsync   = require('push-stream/async')
 /*
 the view takes a map and an array
 map[key] = [...]
@@ -130,12 +131,14 @@ module.exports = function (version, hash, each) {
         })
       },
       intersects: function (opts) {
-        new Intersect(blocks, opts.keys.map(function (key) {
+        var int = new Intersect(blocks, opts.keys.map(function (key) {
           return ht.get(hash(key))
-        }), false)
-        .pipe({
-          write: opts.each, end: opts.done
-        })
+        }), !!opts.reverse)
+
+        if(opts.values)
+          return int.pipe(new PushAsync(function (seq, cb) { log.get(seq, cb) }))
+        else
+          return int
       }
     }
   }
