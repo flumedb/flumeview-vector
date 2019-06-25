@@ -11,10 +11,11 @@
     "async-single": "^1.0.5",
     "atomic-file": "^2.0.0",
     "polyraf": "^1.1.0",
-    "pull-stream": "^3.6.12"
+    "pull-stream": "^3.6.12",
+    "push-stream": "^10.1.0"
   },
   "devDependencies": {
-    "bipf": "^1.2.3",
+    "bipf": "^1.3.0",
     "dog-names": "^2.0.0",
     "flumedb": "2",
     "flumelog-aligned-offset": "^1.0.4",
@@ -26,6 +27,6 @@
   "scripts": {
     "test": "tape test/*.js"
   },
-  "author": "Dominic Tarr @EMovhfIrFk4NihAKnRNhrfRaqIhBv1Wj8pTxJNgvCCY=.ed25519)",
+  "author": "Dominic Tarr @EMovhfIrFk4NihAKnRNhrfRaqIhBv1Wj8pTxJNgvCCY=.ed25519",
   "license": "MIT"
 }
