@@ -78,13 +78,15 @@ tape('intersect', function (t) {
   var a = []
   db.vec.intersects({
     keys: ['.bar:baz', '.quux:okay'],
-    each: function (e) { a.push(e) },
-    done: function (e) {
-      db.get(a[0], function (err, _data) {
-        console.log(a, _data)
-        t.deepEqual(_data, data[0])
+    values: true
+  })
+  .pipe({
+    write: function (e) { a.push(e) },
+    end: function (e) {
+  //    log.get(a[0], function (err, _data) {
+        t.deepEqual(a[0], data[0])
         t.end()
-      })
+//      })
     }
   })
 })

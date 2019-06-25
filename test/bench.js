@@ -28,16 +28,19 @@ var _letter = Buffer.from('letter')
 var _value = Buffer.from('value')
 var _content = Buffer.from('content')
 
+//var seekPathValueContent = bipf.createSeekPath(['value', 'content'])
+
 var start = Date.now()
 function addEverything (buf, seq, add, path) {
   var p
+  //var p = seekPathValueContent(buf, 0)
   p = bipf.seekKey(buf, 0, _value)
   if(~p)
     p = bipf.seekKey(buf, p, _content)
   if(~p)
     bipf.iterate(buf, p, function (_, _value, _key) {
 //      console.log('length', bipf.getEncodedType(buf, _value) == bipf.types.string, bipf.getEncodedLength(buf, _value))
-      if(bipf.getEncodedType(buf, _value) == 0 && bipf.getEncodedLength(buf, _value) < 100) {
+      if(bipf.getEncodedType(buf, _value) == bipf.types.string && bipf.getEncodedLength(buf, _value) < 100) {
         var __key = '.'+bipf.decode(buf, _key) + ':' + bipf.decode(buf, _value)
         add(__key)
 //        console.log(__key)
@@ -94,7 +97,7 @@ db.vec.since(function (v) {
   //    console.log("sync")
       var k_root = '.root:%0/JiKc99TG3lbJImZJir3hu89UABOlicjs6QAPug6ow=.sha256'
 //      var k = '.channel:patchwork'
-      var k = '.type:post'
+      var k = '.type:channel'
       var C = 0, L = 0, _seq
       var start = Date.now(), ts = Date.now()
 
@@ -102,37 +105,18 @@ db.vec.since(function (v) {
           keys: [
             '.channel:solarpunk',
 //            k_root,
-            '.type:post'
+            '.type:channel'
           ],
-          each: function (e) {
-            console.log(e)
+          values: true
+        })
+        .pipe({
+          write: function (e) {
+//            console.log(bipf.decode(e, 0))
             C++
           },
-          done:function () {
+          end :function () {
             console.log(C, Date.now() - start)
           }
         })
-
-      /*
-      ;(function next (i) {
-        if(Date.now() > ts + 1000) {
-          ts = Date.now()
-          console.log(C, L, _seq, C / ((ts - start)/1000))
-        }
-        db.vec.get({key:k, index: i}, function (err, data, seq) {
-          _seq = seq
-          if(err && i === 0) throw err
-          else if(!data && i >= 0) return console.log("GOT", C, L, Date.now() - start)
-//          console.log('get', err, data)
-  //        if(err) throw err
-          C ++
-          L += data.length
-//          console.log(data.length, seq)
-          setImmediate(function () {
-            next(i+1)
-          })
-        })
-      })(0)
-      */
     })
 })
