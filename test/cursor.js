@@ -84,26 +84,21 @@ tape('more vectors', function (t) {
     while(v = c.next()) {
       t.ok(v > _v)
       _v = v
-//      t.equal(v, c.index)
-      //isEnded should not be true until after the next() call
-      console.log('c.index', c.index)
       t.equal(c.isEnded(), false)
     }
-    t.equal(c.isEnded(), true, 'has ended')
     console.log(c)
+    t.equal(c.isEnded(), true, 'has ended')
     t.end()
   })
 })
 //return
 tape('reverse', function (t) {
-//  c2.init(blocks.blocks[0])
   var a = [], b = []
 
   while(!c2.isEnded()) {
     c2.init(blocks.blocks[c2.block_index])
     while(v = c2.next()) a.push(v)
   }
-//  console.log(c2)
   //-----------------
   var c3 = new Cursor(blocks, vector, true)
   c3.index = a.length-1
@@ -113,20 +108,27 @@ tape('reverse', function (t) {
   t.equal(c3.block_index, 1)
   while(!c3.isEnded()) {
     c3.init(blocks.blocks[c3.block_index])
-    console.log('loop', c3)
     while(v = c3.next()) {
-      console.log('inner', v)
       b.push(v)
     }
   }
 
-  //t.equal(v, a.length)
-  console.log('V', v)
   t.deepEqual(b, a.reverse())
   t.end()
 })
 
-//tape('seek', function (t) {
-//  c4.seek(v)
-//
-//})
+tape('read', function (t) {
+  blocks.clear()
+  var a = []
+  var c = new Cursor(blocks, vector, false)
+  c.pipe({
+    write: function (data) {
+      a.push(data)
+    },
+    end: function () {
+      t.ok(a.length)
+      t.equal(a.length, 301)
+      t.end()
+    }
+  })
+})
