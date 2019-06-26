@@ -61,7 +61,7 @@ tape('alloc, set, get', function (t) {
     })
   })
 })
-return
+//return
 tape('more vectors', function (t) {
   count(vector, 102, 200, function (err, _vector) {
     if(err) throw err
@@ -73,9 +73,12 @@ tape('more vectors', function (t) {
     t.equal(c.block_index, 1)
     t.equal(c.block, null)
     c.init(blocks.blocks[1])
-    while(v = c.next())
+    while(v = c.next()) {
       t.equal(v, c.index)
-
+      //isEnded should not be true until after the next() call
+      t.equal(c.isEnded(), false)
+    }
+    t.equal(c.isEnded(), true)
     console.log(c)
     t.end()
   })
