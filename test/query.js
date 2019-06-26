@@ -12,11 +12,11 @@ var pull     = require('pull-stream')
 
 var dir = '/tmp/test_flumeview-vector'
 rimraf.sync(dir)
-var N = 100, data = []
+var N = 40000, data = []
 
 var log = toCompat(Log(path.join(dir, 'log.aligned'), {
   //use bipf format, so no codec needed.
-  block: 64*1024,
+  block: 1024,
 }))
 
 var FlumeViewVector = require('../')
@@ -25,9 +25,6 @@ var _dog = Buffer.from('dog')
 var _fruit = Buffer.from('fruit')
 var _boolean = Buffer.from('boolean')
 var _letter = Buffer.from('letter')
-
-var _value = Buffer.from('value')
-var _content = Buffer.from('content')
 
 var start = Date.now()
 function addEverything (buf, seq, add) {
@@ -96,7 +93,6 @@ tape('test dump', function (t) {
       t.end()
     })
   )
-    
 })
 
 function testMatch(query) {
@@ -118,8 +114,8 @@ function testMatch(query) {
           return true
         })
         t.deepEqual(a, _data)
-        t.equal(a.length, _data.length)
-        t.ok(a.length, 'non empty output')
+        t.equal(a.length, _data.length, 'has '+_data.length + ' items')
+
         t.end()
       }
     })
@@ -129,4 +125,5 @@ function testMatch(query) {
 testMatch({boolean: true})
 testMatch({fruit: 'durian'})
 testMatch({fruit: 'cherry', boolean: false})
-testMatch({fruit: 'apple', boolean: true})
+//testMatch({fruit: 'apple', boolean: true})
+//testMatch({letter: 'ABC'})
