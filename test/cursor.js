@@ -40,27 +40,34 @@ tape('init', function (t) {
 
 tape('alloc, set, get', function (t) {
   console.log("ALLOC?")
-  t.equal(c.index, 0)
+  //t.equal(c.index, 0, 'empty index is zero')
   c.init(blocks.blocks[0])
-  t.equal(c.next(), 0)
-  t.equal(c.index, 0, 'index')
+//  t.ok(c.isEnded(), 'an empty cursor has already ended')
+  t.equal(c.index, -1, 'index')
+  t.equal(c.next(), 0, 'next on empty cursor returns zero')
+  //t.ok(c.isEnded(), 'an empty cursor has already ended')
+  t.equal(c.index, -1, 'index')
   console.log("ALLOC")
   v.set(vector, 0, 1, function () {
     c.init(blocks.blocks[0])
     t.equal(c.next(), 1)
-    t.equal(c.index, 1)
+    //t.equal(c.index, 1)
     console.log("SET")
+    //return t.end()
     count(vector, 2, 100, function (err) {
       if(err) throw err
       c.init(blocks.blocks[0])
       for(var i = 0; i < 32; i++) {
+        t.notOk(c.isEnded())
         t.equal(c.next(), i+2, 'next')
-        t.equal(c.index, 2+i, 'index')
+  //      t.equal(c.index, i+2, 'index')
       }
+      t.notOk(c.isEnded())
       t.end()
     })
   })
 })
+
 //return
 tape('more vectors', function (t) {
   count(vector, 102, 200, function (err, _vector) {
@@ -69,21 +76,25 @@ tape('more vectors', function (t) {
     c.init(blocks.blocks[0])
     var v
     while(v = c.next())
-      t.equal(v, c.index)
+      ; //t.equal(v, c.index)
     t.equal(c.block_index, 1)
     t.equal(c.block, null)
     c.init(blocks.blocks[1])
+    var _v = 0
     while(v = c.next()) {
-      t.equal(v, c.index)
+      t.ok(v > _v)
+      _v = v
+//      t.equal(v, c.index)
       //isEnded should not be true until after the next() call
+      console.log('c.index', c.index)
       t.equal(c.isEnded(), false)
     }
-    t.equal(c.isEnded(), true)
+    t.equal(c.isEnded(), true, 'has ended')
     console.log(c)
     t.end()
   })
 })
-
+//return
 tape('reverse', function (t) {
 //  c2.init(blocks.blocks[0])
   var a = [], b = []
