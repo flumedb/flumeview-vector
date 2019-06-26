@@ -11,6 +11,7 @@ var PRAF        = require('polyraf')
 var Intersect   = require('./intersect')
 var Blocks      = require('./blocks')
 var PushAsync   = require('push-stream/async')
+
 /*
 the view takes a map and an array
 map[key] = [...]
@@ -131,10 +132,24 @@ module.exports = function (version, hash, each) {
         })
       },
       intersects: function (opts) {
-        var int = new Intersect(blocks, opts.keys.map(function (key) {
+        var vectors = opts.keys.map(function (key) {
           return ht.get(hash(key))
-        }), !!opts.reverse)
+        })
+        console.log("VECTORS", vectors)
+        for(var i = 0; i < vectors.length; i++)
+          if(vectors[i] === 0) {
+            return {
+              resume: function () {
+                this.sink.end()
+              },
+              pipe: function (dest) {
+                this.sink = dest
+                if(!dest.paused) dest.end()
+              }
+            }
+          }
 
+        var int = new Intersect(blocks, vectors, !!opts.reverse)
         if(opts.values)
           return int.pipe(new PushAsync(function (seq, cb) { log.get(seq, cb) }))
         else
