@@ -141,6 +141,13 @@ module.exports = function (raf, block_size, magic_number) {
         return i
       }
     },
+    clear: function () {
+      //clear everything not currently being read...
+      for(var i = 0; i < blocks.length - 1; i++) {
+        if(!Array.isArray(blocks[i]))
+          delete blocks[i]
+      }
+    },
     blocks: blocks,
     ready: function (cb) {
       if(self.free) return cb()
