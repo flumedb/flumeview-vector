@@ -1,5 +1,6 @@
 module.exports = Cursor
 
+var CursorStream = require('./stream')
 var Format = require('./format')
 
 /*
@@ -7,9 +8,6 @@ var Format = require('./format')
   it doesn't do any async.
   This is to maximize determinism, which eases testing.
   also closures and stuff tend to be slower.
-
-  
-
 */
 
 function Cursor(blocks, vector, reverse) {
@@ -19,12 +17,14 @@ function Cursor(blocks, vector, reverse) {
   this._blocks = blocks
   this.block_size = blocks.block_size
   this.block_index = ~~(vector/blocks.block_size)
-  this.index = 0
+  this.index = -1
   this._size = this._start = this._next = this._prev = 0
   this.reverse = !!reverse
   this.format = new Format(blocks.block_size)
   this.matched = false //used by intersect
 }
+
+Cursor.prototype = new CursorStream()
 
 Cursor.prototype.init = function (block) {
   this.block = block
@@ -41,46 +41,53 @@ Cursor.prototype.init = function (block) {
 //read the next item from the current block, shifting to the next vector
 //if necessary. if the block is finished, set block to null, and update block_index
 Cursor.prototype.next = function () {
-  if(!this.block) throw new Error('cannot call Cursor#next because block unset')
+  if(!this.block) return 0 //throw new Error('cannot call Cursor#next because block unset')
+  if(this._length == 0) return 0
   if(this.vector == null) throw new Error('vector is null')
+  //kinda a weird loop.
+  //bails out from the middle.
+  //two different ways.
   while(this.block) {
-    var _index = this.index - this._start
+
+    var _index = (this.index + 1) - this._start
     var _vector = this.vector%this.block_size
     //return zero if we have hit the end.
     if(this.isEnded()) return 0
 
+    //previosu vector
     if(_index < 0) {
       //step to previous vector
       this.vector = this.format.prev(this.block, this.vector, this.block_size)
-      this.init(this.block) //update size, next, etc, while we are in the same block.
+      //fall through to last if else to check if new vector is within block
     }
+    //next vector
     else if(this._size <= _index) {
       //step to next vector
       this.vector = this.format.next(this.block, this.vector, this.block_size)
-      this.init(this.block)
+      //fall through to last if else to check if new vector is within block
     }
+    //inside this vector
     else {
       this.value = this.format.get(this.block, _vector, _index, this.block_size)
       this.index += this.reverse ? -1 : 1
       return this.value
     }
 
-    //bail out of the loop if we need a new block
+    //check if block_index has changed
     if(~~(this.vector/this.block_size) !== this.block_index) {
-      
       this.block_index = ~~(this.vector/this.block_size)
       this.block = null
       return 0 //value can't be 0, that means empty space.
     }
-
+    else //reread next/size etc for this vector
+      this.init(this.block)
   }
 }
 
 Cursor.prototype.isEnded = function () {
-
   return (
     this.reverse
-    ? (this.index < 0 && !this._prev)
+    ? (this.index < -1 && !this._prev)
     : (this.index - this._start) >= this._length  && !this._next
   )
 }
