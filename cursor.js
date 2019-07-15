@@ -17,7 +17,7 @@ function Cursor(blocks, vector, reverse) {
   this._blocks = blocks
   this.block_size = blocks.block_size
   this.block_index = ~~(vector/blocks.block_size)
-  this.index = -1
+  this.index = 0 //zero
   this._size = this._start = this._next = this._prev = 0
   this.reverse = !!reverse
   this.format = new Format(blocks.block_size)
@@ -42,26 +42,16 @@ Cursor.prototype.init = function (block) {
 //if necessary. if the block is finished, set block to null, and update block_index
 Cursor.prototype.ready = function () {
   if(!this.block) return false
-  return true
-}
 
-Cursor.prototype.next = function () {
-  if(!this.block) return 0 //throw new Error('cannot call Cursor#next because block unset')
-  if(this._length == 0) return 0
-  if(this.vector == null) throw new Error('vector is null')
-  //kinda a weird loop.
-  //bails out from the middle.
-  //two different ways.
-  while(this.ready()) {
-
-    var _index = (this.index + 1) - this._start
+  while(this.block) {
+    if(this.isEnded()) return false
+    var _index = this.index - this._start
     var _vector = this.vector%this.block_size
-    //return zero if we have hit the end.
-    if(this.isEnded()) return 0
 
-    //previosu vector
+    //previous vector
     if(_index < 0) {
       //step to previous vector
+      var __vector = this.vector 
       this.vector = this.format.prev(this.block, this.vector, this.block_size)
       //fall through to last if else to check if new vector is within block
     }
@@ -74,25 +64,40 @@ Cursor.prototype.next = function () {
     //inside this vector
     else {
       this.value = this.format.get(this.block, _vector, _index, this.block_size)
-      this.index += this.reverse ? -1 : 1
-      return this.value
+      return true
     }
 
     //check if block_index has changed
     if(~~(this.vector/this.block_size) !== this.block_index) {
       this.block_index = ~~(this.vector/this.block_size)
       this.block = null
-      return 0 //value can't be 0, that means empty space.
+      return false //value can't be 0, that means empty space.
     }
-    else //reread next/size etc for this vector
+    else {//reread next/size etc for this vector
       this.init(this.block)
+    }
+  }
+  return false
+}
+
+Cursor.prototype.next = function () {
+  if(!this.block) return 0 //throw new Error('cannot call Cursor#next because block unset')
+  if(this._length == 0) return 0
+  if(this.vector == null) throw new Error('vector is null')
+  //kinda a weird loop.
+  //bails out from the middle.
+  //two different ways.
+  if(this.ready()) {
+    var value = this.value
+    this.index += this.reverse ? -1 : 1
+    return value
   }
 }
 
 Cursor.prototype.isEnded = function () {
   return (
     this.reverse
-    ? (this.index < -1 && !this._prev)
+    ? (this.index < 0 && !this._prev)
     : (this.index - this._start) >= this._length  && !this._next
   )
 }
