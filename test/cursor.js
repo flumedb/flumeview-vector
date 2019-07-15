@@ -42,26 +42,20 @@ tape('alloc, set, get', function (t) {
   console.log("ALLOC?")
   //t.equal(c.index, 0, 'empty index is zero')
   c.init(blocks.blocks[0])
-//  t.ok(c.isEnded(), 'an empty cursor has already ended')
-  t.equal(c.index, -1, 'index')
   t.equal(c.next(), 0, 'next on empty cursor returns zero')
-  //t.ok(c.isEnded(), 'an empty cursor has already ended')
-  t.equal(c.index, -1, 'index')
   console.log("ALLOC")
   v.set(vector, 0, 1, function (_, _vector) {
     vector = _vector
     c.init(blocks.blocks[0])
     t.equal(c.next(), 1)
-    //t.equal(c.index, 1)
-    console.log("SET")
-    //return t.end()
-    count(vector, 2, 100, function (err) {
+    count(vector, 2, 100, function (err, vector) {
       if(err) throw err
+      console.log('new vec', vector, c.index, c)
       c.init(blocks.blocks[0])
       for(var i = 0; i < 32; i++) {
+        t.ok(c.ready())
         t.notOk(c.isEnded())
         t.equal(c.next(), i+2, 'next')
-  //      t.equal(c.index, i+2, 'index')
       }
       t.notOk(c.isEnded())
       t.end()
@@ -76,16 +70,17 @@ tape('more vectors', function (t) {
     console.log('vector', _vector)
     c.init(blocks.blocks[0])
     var v
-    while(v = c.next())
+    while(c.ready()) v = c.next()
       ; //t.equal(v, c.index)
     t.equal(c.block_index, 1)
     t.equal(c.block, null)
     c.init(blocks.blocks[1])
     var _v = 0
-    while(v = c.next()) {
+    while(c.ready()) {
+      t.equal(c.isEnded(), false)
+      v = c.next()
       t.ok(v > _v)
       _v = v
-      t.equal(c.isEnded(), false)
     }
     console.log(c)
     t.equal(c.isEnded(), true, 'has ended')
@@ -98,26 +93,26 @@ tape('reverse', function (t) {
 
   while(!c2.isEnded()) {
     c2.init(blocks.blocks[c2.block_index])
-    while(v = c2.next()) a.push(v)
+    while(c2.ready()) a.push(v = c2.next())
   }
   //-----------------
+//  return t.end()
   var c3 = new Cursor(blocks, vector, true)
   c3.index = a.length-1
   c3.init(blocks.blocks[0])
-  var v = c3.next()
-  t.equal(v, 0) //zero because the last item is not in this block.
+  t.notOk(c3.ready()) //needs to seek to the first block
   t.equal(c3.block_index, 1)
   while(!c3.isEnded()) {
     c3.init(blocks.blocks[c3.block_index])
-    while(v = c3.next()) {
-      b.push(v)
+    while(c3.ready()) {
+      b.push(v = c3.next())
     }
   }
 
   t.deepEqual(b, a.reverse())
   t.end()
 })
-
+//return
 tape('read', function (t) {
   blocks.clear()
   var a = []
