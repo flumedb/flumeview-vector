@@ -18,47 +18,58 @@ function Intersect (blocks, vectors, reverse) {
   this.matched = false
   CursorStream.call(this)
   this._blocks = blocks
+  this.max = 0
 }
 
 //inherits(Intersect, CursorStream)
 
 Intersect.prototype = new CursorStream()
 
+Intersect.prototype.ready = function () {
+  this.max = 0
+  for(var i = 0; i < this.cursors.length; i++) {
+    if(!this.cursors[i].ready()) return false
+    this.max = Math.max(this.cursors[i].value, this.max)
+  }
+  return true
+}
+
 Intersect.prototype.next = function () {
   const cursors = this.cursors
-  var max = 0
-  //will return when hits something or needs a new block
-  for(var i = 0; i < cursors.length; i++) {
-    if(!cursors[i].block) return 0 //needs update
-    if(cursors[i].isEnded()) {
-      this.ended = true
-      return 0
-    }
-    max = Math.max(cursors[i].value, max)
-  }
-  console.log('max?', max, cursors.map(function (e) { return [e.value, e.index] }))
-  for(var i = 0; i < cursors.length; i++) {
-    //TODO: skip forward
-    while(cursors[i].value < max) {
-      if(!cursors[i].next()) return 0
-    }
+  if(!this.ready()) throw new Error('next called when not ready')
+  var max = this.max 
 
-    if(cursors[i].value > max) return 0
+  var loop = true
+  while(loop) {
+    loop = false
+    for(var i = 0; i < cursors.length; i++) {
+      //TODO: skip forward
+      while(cursors[i].value < max) {
+        if(cursors[i].next() == 0) {
+          console.log('hit edge', !!cursors[i].block)
+          this.block = false
+          return 0
+        }
+      }
+
+      if(cursors[i].value > max) {
+        max = cursors[i].value
+//        console.log("new max", cursors[i].value)
+        break;
+        //return 0
+      }
+    }
   }
 
   var value = cursors[0].value
-  console.log("VALUE?", value)
-  //after a match, iterate everything forward
-  var b = false
+
+  var b = true
   for(var i = 0; i < cursors.length; i++) {
     cursors[i].next()
-    b = b || !cursors[i].block
+    b = b && !!cursors[i].block
   }
-  console.log("BLOCK", this.block, b)
-  this.block = b
-  console.log("VALUE?", value, b, cursors.map(function (e) {
-    return !!e.block
-  }))
+  this.block = value === 0 ? false : b
+
   return value
 }
 
@@ -74,12 +85,9 @@ Intersect.prototype.update = function (cb) {
     if(cursor.isEnded()) {
       this.ended = true
     }
-    if(!cursor.block) (function (cursor) {
-      c++
-      self._blocks.get(cursor.block_index, function (err, block) {
-        cursor.init(block); done()
-      })
-    })(cursor)
+    if(!cursor.ready()) {
+      c++; cursor.update(done)
+    }
   }
   done()
   function done (_, block) {
