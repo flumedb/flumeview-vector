@@ -10,9 +10,15 @@ var Reduce   = require('flumeview-reduce')
 var bipf     = require('bipf')
 var pull     = require('pull-stream')
 
+//var Values   = require('../../push-stream/sources/values')
+//var Collect  = require('../../push-stream/sinks/collect')
+//var AsyncMap = require('../../push-stream/throughs/async-map')
+
+var intersection = require('../../intersection/scan')
+
 var dir = '/tmp/test_flumeview-vector'
 rimraf.sync(dir)
-var N = 40000, data = []
+var N = 40, data = []
 
 var log = toCompat(Log(path.join(dir, 'log.aligned'), {
   //use bipf format, so no codec needed.
@@ -95,9 +101,61 @@ tape('test dump', function (t) {
   )
 })
 
+function Filter(query) {
+  return function (e) {
+    for(var k in query)
+      if(e[k] !== query[k]) return false
+    return true
+  }
+}
+
 function testMatch(query) {
+  tape('test separate', function (t) {
+    //return t.end()
+    var n = Object.keys(query).length, results = {}
+    var acc
+    Object.keys(query).forEach(function (key) {
+      var value = query[key], a = []
+      db.vec.intersects({
+        keys: ['.'+key+':'+value],
+        //values: true
+      })
+      .pipe({
+        write: function (d) {
+          a.push(d) //bipf.decode(d, 0))
+        },
+        end: function () {
+          var _data = data.filter(function (e) { return e[key] === value })
+          //t.deepEqual(a, _data)
+          t.equal(a.length, _data.length, 'has '+_data.length + ' items')
+          results[key] = a
+          acc = acc ? intersection.intersect(acc, a) : a
+          next()
+        }
+      })
+    })
+
+    function next () {
+      if(--n) return
+      pull(
+        pull.values(acc),
+        pull.asyncMap(function (seq, cb) {
+          db.get(seq, function (err, buf) {
+            cb(err, bipf.decode(buf, 0))
+          })
+        }),
+        pull.collect(function (err, ary) {
+          _data = data.filter(Filter(query))
+          t.deepEqual(ary, _data, 'MERGE IS EQUAL')
+          t.end()
+        })
+      )
+    }
+  })
+  return
   tape('test matches:'+JSON.stringify(query), function (t) {
     var a = []
+
     db.vec.intersects({
       keys: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
       values: true
@@ -107,7 +165,6 @@ function testMatch(query) {
         a.push(bipf.decode(d, 0))
       },
       end: function () {
-      //  console.log(data)
         var _data = data.filter(function (e) {
           for(var k in query)
             if(e[k] !== query[k]) return false
@@ -115,7 +172,6 @@ function testMatch(query) {
         })
         t.deepEqual(a, _data)
         t.equal(a.length, _data.length, 'has '+_data.length + ' items')
-
         t.end()
       }
     })
@@ -125,5 +181,5 @@ function testMatch(query) {
 testMatch({boolean: true})
 testMatch({fruit: 'durian'})
 testMatch({fruit: 'cherry', boolean: false})
-//testMatch({fruit: 'apple', boolean: true})
-//testMatch({letter: 'ABC'})
+testMatch({fruit: 'apple', boolean: true})
+testMatch({letter: 'ABC'})
