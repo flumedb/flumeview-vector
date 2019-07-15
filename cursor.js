@@ -40,6 +40,11 @@ Cursor.prototype.init = function (block) {
 
 //read the next item from the current block, shifting to the next vector
 //if necessary. if the block is finished, set block to null, and update block_index
+Cursor.prototype.ready = function () {
+  if(!this.block) return false
+  return true
+}
+
 Cursor.prototype.next = function () {
   if(!this.block) return 0 //throw new Error('cannot call Cursor#next because block unset')
   if(this._length == 0) return 0
@@ -47,7 +52,7 @@ Cursor.prototype.next = function () {
   //kinda a weird loop.
   //bails out from the middle.
   //two different ways.
-  while(this.block) {
+  while(this.ready()) {
 
     var _index = (this.index + 1) - this._start
     var _vector = this.vector%this.block_size
@@ -103,7 +108,7 @@ Cursor.prototype.seek = function (v) {
 
 Cursor.prototype.update = function (cb) {
   var async = true
-  if(this.block != null) throw new Error('updated when did not need update')
+  if(this.ready()) throw new Error('updated when did not need update')
   var self = this
   this._blocks.get(this.block_index, function (err, block) {
     async = false

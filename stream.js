@@ -10,8 +10,12 @@ CursorStream.prototype.resume = function () {
 
   var self = this
   if(this.sink.paused) return
+
+  if(!this.ready())
+    return this.update(this.resume.bind(this))
+
   this._resuming = true
-  while(!this.sink.paused && (v = this.next())) {
+  while(!this.sink.paused && ((v = this.next()))) {
     this.sink.write(v - 1)
   }
 
