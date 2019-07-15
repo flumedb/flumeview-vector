@@ -48,7 +48,8 @@ tape('alloc, set, get', function (t) {
   //t.ok(c.isEnded(), 'an empty cursor has already ended')
   t.equal(c.index, -1, 'index')
   console.log("ALLOC")
-  v.set(vector, 0, 1, function () {
+  v.set(vector, 0, 1, function (_, _vector) {
+    vector = _vector
     c.init(blocks.blocks[0])
     t.equal(c.next(), 1)
     //t.equal(c.index, 1)
