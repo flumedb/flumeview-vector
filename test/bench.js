@@ -52,6 +52,9 @@ function done () {
   start = Date.now()
 }
 
+//db.use('ts', require('../ts'))
+
+//return
 db.vec.since(function (v) {
   if(v !== db.since.value) return
   console.log('sync')
@@ -75,11 +78,11 @@ db.vec.since(function (v) {
                 C = 0
                 var int = db.vec.intersects({ keys: [
                   '.type:post', '.channel:solarpunk'
-                ]})
+                ], values: true})
                 .pipe({
                   write: function (e) { C++ },
                   end :function () {
-                    console.log('type:post', C, Date.now() - start)
+                    console.log('type:post,channel:solarpunk', C, Date.now() - start)
                     console.log(C, Date.now() - start)
                   }
                 })
