@@ -11,18 +11,18 @@ CursorStream.prototype.resume = function () {
   var self = this
   if(this.sink.paused) return
 
-  if(!this.ready())
-    return this.update(this.resume.bind(this))
+  if(this.isEnded()) return this.sink.end()
+  if(!this.ready())  return this.update(this.resume.bind(this))
 
   this._resuming = true
-  while(!this.sink.paused && ((v = this.next()))) {
+  while(!this.sink.paused && this.ready() && (v = this.next())) {
     this.sink.write(v - 1)
   }
 
   this._resuming = false
 
   if(this.isEnded()) this.sink.end()
-  else if(!this.block)
+  else if(!this.ready())
     this.update(this.resume.bind(this))
 }
 

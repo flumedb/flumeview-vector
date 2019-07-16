@@ -1,6 +1,3 @@
-//okay for now just handle intersections, but not union or difference.
-//I think those will need nesting...
-var inherits = require('inherits')
 var Cursor = require('./cursor')
 var CursorStream = require('./stream')
 
@@ -21,14 +18,12 @@ function Intersect (blocks, vectors, reverse) {
   this.max = 0
 }
 
-//inherits(Intersect, CursorStream)
-
 Intersect.prototype = new CursorStream()
 
 Intersect.prototype.ready = function () {
   this.max = 0
   for(var i = 0; i < this.cursors.length; i++) {
-    if(!this.cursors[i].ready()) return false
+    if(!this.cursors[i].ready() /*|| this.cursors[i].isEnded()*/) return false
     this.max = Math.max(this.cursors[i].value, this.max)
   }
   return true
@@ -43,26 +38,23 @@ Intersect.prototype.next = function () {
   while(loop) {
     loop = false
     for(var i = 0; i < cursors.length; i++) {
-      //TODO: skip forward
+      //TODO: skip forward, rather than just step forward.
       while(cursors[i].value < max) {
-        if(cursors[i].next() == 0) {
-          console.log('hit edge', !!cursors[i].block)
+        var v = cursors[i].next()
+        if(!v) {
           this.block = false
           return 0
         }
       }
-
       if(cursors[i].value > max) {
         max = cursors[i].value
-//        console.log("new max", cursors[i].value)
+        loop = true
         break;
-        //return 0
       }
     }
   }
 
   var value = cursors[0].value
-
   var b = true
   for(var i = 0; i < cursors.length; i++) {
     cursors[i].next()
@@ -76,9 +68,6 @@ Intersect.prototype.next = function () {
 Intersect.prototype.update = function (cb) {
   const self = this
   const cursors = this.cursors
-  console.log('update?', this.cursors.map(function (e) {
-    return e.isEnded()
-  }))
   var c = 1
   for(var i = 0; i < cursors.length; i++) {
     var cursor = cursors[i]
