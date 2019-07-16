@@ -9,16 +9,19 @@ var hash     = require('string-hash')
 var Reduce   = require('flumeview-reduce')
 var bipf     = require('bipf')
 var pull     = require('pull-stream')
+var RNG      = require('rng')
 
 //var Values   = require('../../push-stream/sources/values')
 //var Collect  = require('../../push-stream/sinks/collect')
 //var AsyncMap = require('../../push-stream/throughs/async-map')
 
-var intersection = require('../../intersection/scan')
+var intersection = require('ordered-intersect/scan')
 
 var dir = '/tmp/test_flumeview-vector'
 rimraf.sync(dir)
 var N = 40, data = []
+
+var mt = new RNG.MT(1)
 
 var log = toCompat(Log(path.join(dir, 'log.aligned'), {
   //use bipf format, so no codec needed.
@@ -39,16 +42,16 @@ function addEverything (buf, seq, add) {
   })
 }
 
-var dogs = require('dog-names')
+var dogs = require('dog-names').all
 var fruit = ['apple', 'banana', 'cherry', 'durian', 'elderberry']
 var letters = 'abcdefghijklmnopqrstuvwxyz'.toUpperCase()
 
 function random () {
   var value = {
-    boolean: Math.random() > 0.5,
-    dog: dogs.allRandom(),
-    fruit: fruit[~~(Math.random()*fruit.length)],
-    letter: letters[~~(Math.random()*letters.length)],
+    boolean: mt.random() > 0.5,
+    dog: dogs[dogs.length*mt.random()],
+    fruit: fruit[~~(mt.random()*fruit.length)],
+    letter: letters[~~(mt.random()*letters.length)],
   }
   data.push(value)
   var b = Buffer.alloc(bipf.encodingLength(value))
@@ -110,7 +113,7 @@ function Filter(query) {
 }
 
 function testMatch(query) {
-  tape('test separate', function (t) {
+  tape('test separate:'+JSON.stringify(query), function (t) {
     //return t.end()
     var n = Object.keys(query).length, results = {}
     var acc
@@ -152,7 +155,7 @@ function testMatch(query) {
       )
     }
   })
-  return
+//  return
   tape('test matches:'+JSON.stringify(query), function (t) {
     var a = []
 
