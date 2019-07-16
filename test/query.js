@@ -19,7 +19,7 @@ var intersection = require('ordered-intersect/scan')
 
 var dir = '/tmp/test_flumeview-vector'
 rimraf.sync(dir)
-var N = 40, data = []
+var N = 4000, data = []
 
 var mt = new RNG.MT(1)
 
@@ -49,7 +49,7 @@ var letters = 'abcdefghijklmnopqrstuvwxyz'.toUpperCase()
 function random () {
   var value = {
     boolean: mt.random() > 0.5,
-    dog: dogs[dogs.length*mt.random()],
+    dog: dogs[~~(dogs.length*mt.random())],
     fruit: fruit[~~(mt.random()*fruit.length)],
     letter: letters[~~(mt.random()*letters.length)],
   }
@@ -158,7 +158,7 @@ function testMatch(query) {
 //  return
   tape('test matches:'+JSON.stringify(query), function (t) {
     var a = []
-
+    var start = Date.now()
     db.vec.intersects({
       keys: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
       values: true
@@ -168,6 +168,8 @@ function testMatch(query) {
         a.push(bipf.decode(d, 0))
       },
       end: function () {
+        var time = Date.now() - start
+        console.log(time, a.length, a.length/time)
         var _data = data.filter(function (e) {
           for(var k in query)
             if(e[k] !== query[k]) return false
@@ -185,4 +187,6 @@ testMatch({boolean: true})
 testMatch({fruit: 'durian'})
 testMatch({fruit: 'cherry', boolean: false})
 testMatch({fruit: 'apple', boolean: true})
+testMatch({dog: 'Rufus', boolean: true})
 testMatch({letter: 'ABC'})
+testMatch({fruit: 'cherry', boolean: false, letter: 'A'})
