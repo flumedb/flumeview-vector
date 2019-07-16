@@ -48,47 +48,43 @@ var int = setInterval(function () {
 int.unref()
 
 function done () {
-//  console.log("DONE", Date.now() - start)
   start = Date.now()
 }
 
-//db.use('ts', require('../ts'))
 
-//return
 db.vec.since(function (v) {
   if(v !== db.since.value) return
-  console.log('sync')
   clearInterval(int)
-    setImmediate(function () {
-      var C = 0, L = 0, _seq
-      var start = Date.now(), ts = Date.now()
+  setImmediate(function () {
+    var C = 0, L = 0, _seq
+    var start = Date.now(), ts = Date.now()
 
-        var int = db.vec.intersects({ keys: ['.channel:solarpunk'] })
-        .pipe({
-          write: function (e) { C++ },
-          end :function () {
-            console.log('channel:solarpunk', C, Date.now() - start)
-            C = 0
-            var int = db.vec.intersects({ keys: ['.type:post'] })
-            .pipe({
-              write: function (e) { C++ },
-              end :function () {
-                console.log('type:post', C, Date.now() - start)
-                console.log(C, Date.now() - start)
-                C = 0
-                var int = db.vec.intersects({ keys: [
-                  '.type:post', '.channel:solarpunk'
-                ], values: true})
-                .pipe({
-                  write: function (e) { C++ },
-                  end :function () {
-                    console.log('type:post,channel:solarpunk', C, Date.now() - start)
-                    console.log(C, Date.now() - start)
-                  }
-                })
-              }
-            })
-          }
-        })
-    })
+      var int = db.vec.intersects({ keys: ['.channel:solarpunk'] })
+      .pipe({
+        write: function (e) { C++ },
+        end :function () {
+          console.log('channel:solarpunk', C, Date.now() - start)
+          C = 0
+          var int = db.vec.intersects({ keys: ['.type:post'] })
+          .pipe({
+            write: function (e) { C++ },
+            end :function () {
+              console.log('type:post', C, Date.now() - start)
+              console.log(C, Date.now() - start)
+              C = 0
+              var int = db.vec.intersects({ keys: [
+                '.type:post', '.channel:solarpunk'
+              ], values: true})
+              .pipe({
+                write: function (e) { C++ },
+                end :function () {
+                  console.log('type:post,channel:solarpunk', C, Date.now() - start)
+                  console.log(C, Date.now() - start)
+                }
+              })
+            }
+          })
+        }
+      })
+  })
 })
