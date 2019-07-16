@@ -112,7 +112,8 @@ function Filter(query) {
   }
 }
 
-function testMatch(query) {
+function testMatch(query, limit) {
+  limit = limit || -1
   tape('test separate:'+JSON.stringify(query), function (t) {
     //return t.end()
     var n = Object.keys(query).length, results = {}
@@ -161,7 +162,8 @@ function testMatch(query) {
     var start = Date.now()
     db.vec.intersects({
       keys: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
-      values: true
+      values: true,
+      limit: limit
     })
     .pipe({
       write: function (d) {
@@ -175,8 +177,14 @@ function testMatch(query) {
             if(e[k] !== query[k]) return false
           return true
         })
+        _data = _data.slice(0, limit === -1 ? _data.length : limit)
         t.deepEqual(a, _data)
-        t.equal(a.length, _data.length, 'has '+_data.length + ' items')
+        if(limit > -1) {
+          console.log('length, limit', a.length, limit)
+          t.ok(a.length <= limit, 'length less or equal to limit')
+        }
+        else
+          t.equal(a.length, _data.length, 'has '+_data.length + ' items')
         t.end()
       }
     })
@@ -190,3 +198,12 @@ testMatch({fruit: 'apple', boolean: true})
 testMatch({dog: 'Rufus', boolean: true})
 testMatch({letter: 'ABC'})
 testMatch({fruit: 'cherry', boolean: false, letter: 'A'})
+
+testMatch({boolean: true}, 50)
+testMatch({fruit: 'durian'}, 7)
+
+testMatch({fruit: 'cherry', boolean: false}, 2)
+testMatch({fruit: 'apple', boolean: true}, 9)
+testMatch({dog: 'Rufus', boolean: true}, 2)
+testMatch({letter: 'ABC'}, 1)
+testMatch({fruit: 'cherry', boolean: false, letter: 'A'}, 3)
