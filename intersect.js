@@ -1,10 +1,10 @@
 var Cursor = require('./cursor')
 var CursorStream = require('./stream')
 
-function Intersect (blocks, vectors, reverse) {
-  if(vectors.length === 1)
-    return new Cursor(blocks, vectors[0], reverse)
-
+function Intersect (blocks, vectors, reverse, limit) {
+  if(vectors.length === 1) {
+    return new Cursor(blocks, vectors[0], reverse, limit)
+  }
   this.cursors = vectors.map(function (v) {
     return new Cursor(blocks, v, reverse)
   })
@@ -13,7 +13,7 @@ function Intersect (blocks, vectors, reverse) {
   this.value = 0
   this.ended = false
   this.matched = false
-  CursorStream.call(this)
+  CursorStream.call(this, limit)
   this._blocks = blocks
   this.max = 0
 }
@@ -32,7 +32,7 @@ Intersect.prototype.ready = function () {
 Intersect.prototype.next = function () {
   const cursors = this.cursors
   if(!this.ready()) throw new Error('next called when not ready')
-  var max = this.max 
+  var max = this.max
 
   var loop = true
   while(loop) {
@@ -40,11 +40,7 @@ Intersect.prototype.next = function () {
     for(var i = 0; i < cursors.length; i++) {
       //TODO: skip forward, rather than just step forward.
       while(cursors[i].value < max) {
-        var v = cursors[i].next()
-        if(!v) {
-          this.block = false
-          return 0
-        }
+        if(!cursors[i].next()) return 0
       }
       if(cursors[i].value > max) {
         max = cursors[i].value
@@ -55,12 +51,9 @@ Intersect.prototype.next = function () {
   }
 
   var value = cursors[0].value
-  var b = true
   for(var i = 0; i < cursors.length; i++) {
     cursors[i].next()
-    b = b && !!cursors[i].block
   }
-  this.block = value === 0 ? false : b
 
   return value
 }

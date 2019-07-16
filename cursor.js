@@ -10,7 +10,7 @@ var Format = require('./format')
   also closures and stuff tend to be slower.
 */
 
-function Cursor(blocks, vector, reverse) {
+function Cursor(blocks, vector, reverse, limit) {
   this.vector = vector
   this.block = null
   if(!blocks.block_size) throw new Error('block_size undefined')
@@ -22,6 +22,7 @@ function Cursor(blocks, vector, reverse) {
   this.reverse = !!reverse
   this.format = new Format(blocks.block_size)
   this.matched = false //used by intersect
+  this.limit = limit || -1
 }
 
 Cursor.prototype = new CursorStream()

@@ -148,7 +148,7 @@ module.exports = function (version, hash, each) {
             }
           }
 
-        var int = new Intersect(blocks, vectors, !!opts.reverse)
+        var int = new Intersect(blocks, vectors, !!opts.reverse, opts.limit || -1)
         if(opts.values)
           return int.pipe(new PushAsync(function (seq, cb) { log.get(seq, cb) }))
         else

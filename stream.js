@@ -1,8 +1,9 @@
 
-function CursorStream() {
+function CursorStream(limit) {
   this.sink = null
   this._blocks = null
   this._resuming = false
+  this.limit = limit || -1
 }
 
 CursorStream.prototype.resume = function () {
@@ -16,7 +17,13 @@ CursorStream.prototype.resume = function () {
 
   this._resuming = true
   while(!this.sink.paused && this.ready() && (v = this.next())) {
+    this.limit --
     this.sink.write(v - 1)
+    if(this.limit === 0) {
+      this.ended = true
+      if(!this.sink.paused) this.sink.end()
+      return
+    }
   }
 
   this._resuming = false
