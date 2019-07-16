@@ -63,7 +63,6 @@ tape('alloc, set, get', function (t) {
   })
 })
 
-//return
 tape('more vectors', function (t) {
   count(vector, 102, 200, function (err, _vector) {
     if(err) throw err
@@ -87,7 +86,7 @@ tape('more vectors', function (t) {
     t.end()
   })
 })
-//return
+
 tape('reverse', function (t) {
   var a = [], b = []
 
@@ -112,11 +111,30 @@ tape('reverse', function (t) {
   t.deepEqual(b, a.reverse())
   t.end()
 })
-//return
-tape('read', function (t) {
+
+tape('cursor stream, forward', function (t) {
   blocks.clear()
   var a = []
   var c = new Cursor(blocks, vector, false)
+//  c.index = 301
+  c.pipe({
+    write: function (data) {
+      a.push(data)
+    },
+    end: function () {
+      t.ok(a.length)
+      t.equal(a.length, 301)
+      t.end()
+    }
+  })
+})
+
+tape('cursor stream, reverse', function (t) {
+  blocks.clear()
+  var a = []
+  var c = new Cursor(blocks, vector, true)
+  c.index = 300
+
   c.pipe({
     write: function (data) {
       a.push(data)

@@ -81,12 +81,12 @@ tape('intersect', function (t) {
     values: true
   })
   .pipe({
-    write: function (e) { a.push(e) },
+    write: function (e) {
+      a.push(e)
+    },
     end: function (e) {
-  //    log.get(a[0], function (err, _data) {
-        t.deepEqual(a[0], data[0])
-        t.end()
-//      })
+      t.deepEqual(a, [data[0]])
+      t.end()
     }
   })
 })
