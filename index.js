@@ -85,7 +85,7 @@ module.exports = function (version, hash, each) {
                 //allocating a *new buffer* is always sync, once loaded.
                 vectors.alloc(32, function (err, vec) {
                   ht.set(_key, vec)
-                  if(ht.get(_key) != vec) throw new Error('set failed')
+                  if(ht.get(_key) != vec) throw new Error('set failed: should never happen')
                   vectors.append(vec, seq+1, next)
                 })
               }
@@ -135,7 +135,6 @@ module.exports = function (version, hash, each) {
         var vectors = opts.keys.map(function (key) {
           return ht.get(hash(key))
         })
-        console.log("VECTORS", vectors)
         for(var i = 0; i < vectors.length; i++)
           if(vectors[i] === 0) {
             return {
