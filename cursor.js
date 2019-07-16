@@ -90,6 +90,7 @@ Cursor.prototype.next = function () {
   if(this.ready()) {
     var value = this.value
     this.index += this.reverse ? -1 : 1
+    this.ready()
     return value
   }
 }
