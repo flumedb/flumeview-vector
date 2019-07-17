@@ -9,7 +9,6 @@ function Intersect (blocks, vectors, reverse, limit) {
     return new Cursor(blocks, v, reverse)
   })
 
-  this.block = false
   this.value = 0
   this.ended = false
   this.matched = false
@@ -40,8 +39,10 @@ Intersect.prototype.next = function () {
     for(var i = 0; i < cursors.length; i++) {
       //TODO: skip forward, rather than just step forward.
       while(cursors[i].value < max) {
-        if(!cursors[i].next()) return 0
+        if(!cursors[i].ready()) return 0
+        cursors[i].next()
       }
+
       if(cursors[i].value > max) {
         max = cursors[i].value
         loop = true
