@@ -52,7 +52,7 @@ Cursor.prototype.ready = function () {
     //previous vector
     if(_index < 0) {
       //step to previous vector
-      var __vector = this.vector 
+      var __vector = this.vector
       this.vector = this.format.prev(this.block, this.vector, this.block_size)
       //fall through to last if else to check if new vector is within block
     }
@@ -94,6 +94,7 @@ Cursor.prototype.next = function () {
     this.ready()
     return value
   }
+  else throw new Error('not ready')
 }
 
 Cursor.prototype.isEnded = function () {
