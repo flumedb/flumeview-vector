@@ -156,7 +156,28 @@ function testMatch(query, limit) {
       )
     }
   })
-//  return
+
+  function filterQuery(ary, query) {
+    return 
+  }
+
+  function assertQuery(t, a, data, query) {
+    var _data = data.filter(function (e) {
+      for(var k in query)
+        if(e[k] !== query[k]) return false
+      return true
+    })
+    if(query.reverse) _data.reverse()
+    _data = _data.slice(0, limit === -1 ? _data.length : limit)
+    t.deepEqual(a, _data)
+    if(limit > -1) {
+      console.log('length, limit', a.length, limit)
+      t.ok(a.length <= limit, 'length less or equal to limit')
+    }
+    else
+      t.equal(a.length, _data.length, 'has '+_data.length + ' items')
+  }
+
   tape('test matches:'+JSON.stringify(query), function (t) {
     var a = []
     var start = Date.now()
@@ -172,19 +193,29 @@ function testMatch(query, limit) {
       end: function () {
         var time = Date.now() - start
         console.log(time, a.length, a.length/time)
-        var _data = data.filter(function (e) {
-          for(var k in query)
-            if(e[k] !== query[k]) return false
-          return true
-        })
-        _data = _data.slice(0, limit === -1 ? _data.length : limit)
-        t.deepEqual(a, _data)
-        if(limit > -1) {
-          console.log('length, limit', a.length, limit)
-          t.ok(a.length <= limit, 'length less or equal to limit')
-        }
-        else
-          t.equal(a.length, _data.length, 'has '+_data.length + ' items')
+        assertQuery(t, a, data, query)
+        t.end()
+      }
+    })
+  })
+
+  tape('test matches:'+JSON.stringify(query)+ ', reverse', function (t) {
+    var a = []
+    var start = Date.now()
+    query = Object.assign({reverse: true}, query)
+    db.vec.intersects({
+      keys: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
+      values: true, reverse: true,
+      limit: limit
+    })
+    .pipe({
+      write: function (d) {
+        a.push(bipf.decode(d, 0))
+      },
+      end: function () {
+        var time = Date.now() - start
+        console.log(time, a.length, a.length/time)
+        assertQuery(t, a, data, query)
         t.end()
       }
     })
