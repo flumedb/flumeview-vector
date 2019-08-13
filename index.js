@@ -38,7 +38,7 @@ module.exports = function (version, hash, each) {
     var af
     var dir = path.join(path.dirname(log.filename), name)
     var ht
-    var vectors, blocks
+    var vectors, blocks, updating = false
     mkdirp(dir, function (_) {
       af = AtomicFile(path.join(dir, 'hashtable.ht'))
       blocks = Blocks(PRAF(path.join(dir, 'vectors.vec'), {readable: true, writable: true}), block_size)
@@ -63,57 +63,75 @@ module.exports = function (version, hash, each) {
       else cb()
     })
 
+    function createMap (each) {
+      return function map (dataseq, cb) {
+        var seq = dataseq.seq
+        var data = dataseq.value
+        var n = 0, async = false
+        each(data, seq, function (key) {
+          n++
+          if(async) throw new Error('flumeview-vector: each cannot be called async')
+          var _key = Number.isInteger(key) ? key : hash(key)
+          var vec = ht.get(_key)
+          if(!vec) {
+            //allocating a *new buffer* is always sync, once loaded.
+            vectors.alloc(32, function (err, vec) {
+              ht.set(_key, vec)
+              if(ht.get(_key) != vec) throw new Error('set failed: should never happen')
+              vectors.append(vec, seq+1, next)
+            })
+          }
+          else
+            vectors.append(vec, seq+1, function (err, _vec) {
+              //if a new vector was allocated, update the hashtable
+              if(_vec !== vec) ht.set(_key, _vec)
+              next()
+            })
+        })
+        async = true
+        if(!n) {
+          //update sequence, even though we didn't write anything.
+          ht.buffer.writeUInt32LE(seq+1, 0)
+          w.write(ht.buffer)
+          cb(null, seq)
+        }
+        function next () {
+          if(--n) return
+          n = -1
+          if(ht.load() > 0.5) ht.rehash()
+          ht.buffer.writeUInt32LE(seq+1, 0)
+          w.write(ht.buffer)
+          cb(null, seq)
+        }
+      }
+    }
     return {
       methods: {
         get: 'async', //stream: 'source'
-        intersects: 'sync'
+        intersects: 'sync',
+        update: 'async'
       },
       since: since,
       //XXX TODO rewrite flume to use push-streams?
+      update: function (_each, cb) {
+        if(updating) throw new Error('already updating')
+        updating = true
+        pull(
+          log.stream(),
+          pull.asyncMap(createMap(_each)),
+          pull.drain(null, function (err) {
+            updating = false
+            cb(err)
+          })
+        )
+      },
       createSink: function (cb) {
+        var _map = createMap(each)
         return pull(
           pull.asyncMap(function (dataseq, cb) {
-            var seq = dataseq.seq
-            var data = dataseq.value
-            var n = 0, async = false
-            each(data, seq, function (key) {
-              n++
-              if(async) throw new Error('flumeview-vector: each cannot be called async')
-              var _key = hash(key)
-              var vec = ht.get(_key)
-              if(!vec) {
-                //allocating a *new buffer* is always sync, once loaded.
-                vectors.alloc(32, function (err, vec) {
-                  ht.set(_key, vec)
-                  if(ht.get(_key) != vec) throw new Error('set failed: should never happen')
-                  vectors.append(vec, seq+1, next)
-                })
-              }
-              else
-                vectors.append(vec, seq+1, function (err, _vec) {
-                  //if a new vector was allocated, update the hashtable
-                  if(_vec !== vec) ht.set(_key, _vec)
-                  next()
-                })
-
+            _map(dataseq, function (err, seq) {
+              since.set(seq); cb()
             })
-            async = true
-            if(!n) {
-              //update sequence, even though we didn't write anything.
-              ht.buffer.writeUInt32LE(seq+1, 0)
-              w.write(ht.buffer)
-              since.set(seq)
-              cb()
-            }
-            function next () {
-              if(--n) return
-              n = -1
-              if(ht.load() > 0.5) ht.rehash()
-              ht.buffer.writeUInt32LE(seq+1, 0)
-              w.write(ht.buffer)
-              since.set(seq)
-              cb()
-            }
           }),
           pull.drain(null, cb)
         )
