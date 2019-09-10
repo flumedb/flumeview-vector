@@ -10,6 +10,10 @@ var Format = require('./format')
   also closures and stuff tend to be slower.
 */
 
+//NOTE: zero means null.
+//so since flumelog offset can be zero, use value - 1 to get real value.
+//and when storing +1
+
 function Cursor(blocks, vector, reverse, limit) {
   this.vector = vector
   this.block = null
