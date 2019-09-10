@@ -9,6 +9,7 @@ var AsyncSingle = require('async-single')
 var Vectors     = require('./vector')
 var PRAF        = require('polyraf')
 var Intersect   = require('./intersect')
+var Union       = require('./union')
 var Blocks      = require('./blocks')
 var PushAsync   = require('push-stream/async')
 
@@ -105,10 +106,44 @@ module.exports = function (version, hash, each) {
         }
       }
     }
+
+    function createQuery (Constructor, skip_zero) {
+      return function (opts) {
+        var vectors = opts.keys.map(function (key) {
+          return ht.get(hash(key))
+        })
+        //TODO: refactor handling zero length vectors.
+        //      if a single vector is zero for an and, output is zero.
+        //      for an or, the zero length vector is just dropped.
+        //      for difference, if the first vector is zero, output is zero
+        //                      if the second vector is zero, output is first vector.
+        if(!skip_zero)
+          for(var i = 0; i < vectors.length; i++)
+            if(vectors[i] === 0) {
+              return {
+                resume: function () {
+                  this.sink.end()
+                },
+                pipe: function (dest) {
+                  this.sink = dest
+                  if(!dest.paused) dest.end()
+                }
+              }
+            }
+
+          var stream = new Constructor(blocks, vectors, !!opts.reverse, opts.limit)
+          if(opts.values)
+            return stream.pipe(new PushAsync(function (seq, cb) { log.get(seq, cb) }))
+          else
+            return stream
+        }
+    }
+
     return {
       methods: {
         get: 'async', //stream: 'source'
         intersects: 'sync',
+        union: 'sync',
         update: 'async'
       },
       since: since,
@@ -149,29 +184,8 @@ module.exports = function (version, hash, each) {
             })
         })
       },
-      intersects: function (opts) {
-        var vectors = opts.keys.map(function (key) {
-          return ht.get(hash(key))
-        })
-        for(var i = 0; i < vectors.length; i++)
-          if(vectors[i] === 0) {
-            return {
-              resume: function () {
-                this.sink.end()
-              },
-              pipe: function (dest) {
-                this.sink = dest
-                if(!dest.paused) dest.end()
-              }
-            }
-          }
-
-        var int = new Intersect(blocks, vectors, !!opts.reverse, opts.limit || -1)
-        if(opts.values)
-          return int.pipe(new PushAsync(function (seq, cb) { log.get(seq, cb) }))
-        else
-          return int
-      }
+      intersects: createQuery(Intersect),
+      union: createQuery(Union, true)
     }
   }
 }
