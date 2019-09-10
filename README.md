@@ -22,6 +22,7 @@ create a flumeview vector instance.
 `hash` a function that takes a key and returns a 32 bit integer.
 `each` a function that takes `value, sequence, add` and calls `add(key)` for
 each key to be indexed. `key` can be any type that `hash` accepts.
+If `key` is an integer it is taken as the value that hash would have returned.
 
 ### fvv.get({key, index}, cb)
 
@@ -31,7 +32,23 @@ index is the integer position to look at.
 ### fvv.intersects({keys: [], reverse, limit})
 
 return a push-stream of the intersections between one or more indexes.
-the key is an array of whatever type is accepted by `hash`.
+the `keys` is an array of whatever type is accepted by `hash`.
+
+### fvv.union({keys: [], reverse, limit})
+
+return a push-stream of the union of one or more indexes.
+a record is included in the output if it's in either or both.
+If a record is in both indexes, it in _not included in the output twice_.
+the `keys` is an array of whatever type is accepted by `hash`.
+
+### fvv.update(each_fn, cb)
+
+Update the indexes with a new function. calls `cb` when complete.
+only a single call to `update` is allowed at a time. If you need to make multiple
+updates at once, they should be merged. Updates may add indexes, but not remove them.
+Immediately after the update is complete, the `each` function (passed to constructor)
+should be updated to do both what `each_fn` and the original `each` does.
+the effect should be that rebuilding the index at this point returns both.
 
 ## License
 
