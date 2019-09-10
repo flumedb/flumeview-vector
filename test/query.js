@@ -157,25 +157,32 @@ function testMatch(query, limit) {
     }
   })
 
-  function filterQuery(ary, query) {
-    return 
-  }
-
-  function assertQuery(t, a, data, query) {
-    var _data = data.filter(function (e) {
-      for(var k in query)
-        if(e[k] !== query[k]) return false
+  function assertQueryAnd(t, a, data, query) {
+    assertQuery(t, a, data, query, function (e) {
+      for(var k in query) if(e[k] !== query[k]) return false
       return true
     })
+  }
+
+  function assertQueryOr(t, a, data, query) {
+    assertQuery(t, a, data, query, function (e) {
+      for(var k in query) if(e[k] === query[k]) return true
+      return false
+    })
+  }
+
+
+  function assertQuery(t, a, data, query, fn) {
+    var _data = data.filter(fn)
     if(query.reverse) _data.reverse()
     _data = _data.slice(0, limit === -1 ? _data.length : limit)
-    t.deepEqual(a, _data)
     if(limit > -1) {
       console.log('length, limit', a.length, limit)
       t.ok(a.length <= limit, 'length less or equal to limit')
     }
     else
-      t.equal(a.length, _data.length, 'has '+_data.length + ' items')
+      t.equal(a.length, _data.length, 'has '+a.length + ' items, expected:'+_data.length)
+    t.deepEqual(a, _data)
   }
 
   tape('test matches:'+JSON.stringify(query), function (t) {
@@ -193,16 +200,17 @@ function testMatch(query, limit) {
       end: function () {
         var time = Date.now() - start
         console.log(time, a.length, a.length/time)
-        assertQuery(t, a, data, query)
+        assertQueryAnd(t, a, data, query)
         t.end()
       }
     })
   })
 
+  if(false)
   tape('test matches:'+JSON.stringify(query)+ ', reverse', function (t) {
     var a = []
     var start = Date.now()
-    query = Object.assign({reverse: true}, query)
+//    query = Object.assign({reverse: true}, query)
     db.vec.intersects({
       keys: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
       values: true, reverse: true,
@@ -215,11 +223,32 @@ function testMatch(query, limit) {
       end: function () {
         var time = Date.now() - start
         console.log(time, a.length, a.length/time)
-        assertQuery(t, a, data, query)
+        assertQueryAnd(t, a, data, query)
         t.end()
       }
     })
   })
+
+  if(Object.keys(query).length == 2)
+    tape('test union', function (t) {
+      var a = []
+      db.vec.union({
+        keys: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
+        values: true, limit: limit
+      })
+      .pipe({
+        write: function (d) {
+          a.push(bipf.decode(d, 0))
+        },
+        end: function () {
+          var time = Date.now() - start
+          console.log(time, a.length, a.length/time)
+          console.log("QUERY", query)
+          assertQueryOr(t, a, data, query)
+          t.end()
+        }
+      })
+    })
 }
 
 testMatch({boolean: true})
