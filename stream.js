@@ -17,9 +17,10 @@ CursorStream.prototype.resume = function () {
 
   this._resuming = true
   while(!this.sink.paused && this.ready() && (v = this.next())) {
-    this.limit --
+    if(this.limit > 0) this.limit --
     this.sink.write(v - 1)
     if(this.limit === 0) {
+      //TODO clean up any substreams (for intersect and union)
       this.ended = true
       if(!this.sink.paused) this.sink.end()
       return
