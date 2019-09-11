@@ -1,17 +1,20 @@
 'use strict'
+var path        = require('path')
+var mkdirp      = require('mkdirp')
 var Obv         = require('obv')
 var pull        = require('pull-stream')
 var AtomicFile  = require('atomic-file/buffer')
-var HashTable   = require('./hashtable')
-var path        = require('path')
-var mkdirp      = require('mkdirp')
-var AsyncSingle = require('async-single')
-var Vectors     = require('./vector')
 var PRAF        = require('polyraf')
+var PushAsync   = require('push-stream/async')
+var AsyncSingle = require('async-single')
+
+var HashTable   = require('./hashtable')
+var Vectors     = require('./vector')
+var Blocks      = require('./blocks')
+
 var Intersect   = require('./intersect')
 var Union       = require('./union')
-var Blocks      = require('./blocks')
-var PushAsync   = require('push-stream/async')
+var Difference  = require('./difference')
 
 /*
 the view takes a map and an array
@@ -144,6 +147,7 @@ module.exports = function (version, hash, each) {
         get: 'async', //stream: 'source'
         intersects: 'sync',
         union: 'sync',
+        difference: 'sync',
         update: 'async'
       },
       since: since,
@@ -185,7 +189,8 @@ module.exports = function (version, hash, each) {
         })
       },
       intersects: createQuery(Intersect),
-      union: createQuery(Union, true)
+      union: createQuery(Union, true),
+      difference: createQuery(Difference, true)
     }
   }
 }
