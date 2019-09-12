@@ -157,24 +157,36 @@ function testMatch(query, limit) {
     }
   })
 
-  function assertQueryAnd(t, a, data, query) {
+  function assertQueryAnd(t, a, data, query, reverse) {
     assertQuery(t, a, data, query, function (e) {
       for(var k in query) if(e[k] !== query[k]) return false
       return true
-    })
+    }, reverse)
   }
 
-  function assertQueryOr(t, a, data, query) {
+  function assertQueryOr(t, a, data, query, reverse) {
     assertQuery(t, a, data, query, function (e) {
       for(var k in query) if(e[k] === query[k]) return true
       return false
     })
   }
 
+  function assertQueryAndNot(t, a, data, query, reverse) {
+    assertQuery(t, a, data, query, function (e) {
+      var first = 0
+      for(var k in query) {
+        if(first++) {
+          if(e[k] === query[k]) return false
+        }
+        else if(e[k] !== query[k]) return false
+      }
+      return true
+    }, reverse)
+  }
 
-  function assertQuery(t, a, data, query, fn) {
+  function assertQuery(t, a, data, query, fn, reverse) {
     var _data = data.filter(fn)
-    if(query.reverse) _data.reverse()
+    if(reverse) _data = _data.reverse()
     _data = _data.slice(0, limit === -1 ? _data.length : limit)
     if(limit > -1) {
       console.log('length, limit', a.length, limit)
@@ -182,7 +194,7 @@ function testMatch(query, limit) {
     }
     else
       t.equal(a.length, _data.length, 'has '+a.length + ' items, expected:'+_data.length)
-    t.deepEqual(a, _data)
+    t.deepEqual(a, _data, 'output is equal')
   }
 
   tape('test matches:'+JSON.stringify(query), function (t) {
@@ -206,15 +218,17 @@ function testMatch(query, limit) {
     })
   })
 
-  if(false)
+  var keys = Object.keys(query).map(function (k) { return '.'+k+':'+query[k] })
+  var length = keys.length
+
+  //disable reverse searches for now...
+  if(false && length == 1)
   tape('test matches:'+JSON.stringify(query)+ ', reverse', function (t) {
+    console.log("SINGLE ************************")
     var a = []
     var start = Date.now()
-//    query = Object.assign({reverse: true}, query)
     db.vec.intersects({
-      keys: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
-      values: true, reverse: true,
-      limit: limit
+      keys: keys, values: true, reverse: true, limit: limit
     })
     .pipe({
       write: function (d) {
@@ -225,16 +239,16 @@ function testMatch(query, limit) {
         console.log(time, a.length, a.length/time)
         assertQueryAnd(t, a, data, query)
         t.end()
+    console.log("SINGLE =========================")
       }
     })
   })
 
-  if(Object.keys(query).length == 2)
+  if(length >= 2)
     tape('test union', function (t) {
       var a = []
       db.vec.union({
-        keys: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
-        values: true, limit: limit
+        keys: keys, values: true, limit: limit
       })
       .pipe({
         write: function (d) {
@@ -245,6 +259,28 @@ function testMatch(query, limit) {
           console.log(time, a.length, a.length/time)
           console.log("QUERY", query)
           assertQueryOr(t, a, data, query)
+          t.end()
+        }
+      })
+    })
+
+  if(false && length === 2)
+    tape('test difference:'+JSON.stringify(query), function (t) {
+      var a = []
+      console.log("DIFFERENCE", keys)
+      db.vec.difference({
+        vectors: keys, values: true, limit: limit
+      })
+      .pipe({
+        write: function (d) {
+          a.push(bipf.decode(d.value, 0))
+        },
+        end: function () {
+          var time = Date.now() - start
+          console.log(time, a.length, a.length/time)
+          console.log("QUERY ANDNOT", query)
+          console.log("QUERY ANDNOT", a)
+          assertQueryAndNot(t, a, data, query)
           t.end()
         }
       })
