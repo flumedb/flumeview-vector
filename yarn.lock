@@ -557,6 +557,11 @@ once@^1.3.0, once@^1.4.0:
   dependencies:
     wrappy "1"
 
+ordered-intersect@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/ordered-intersect/-/ordered-intersect-1.0.0.tgz#b8911400ef28cf625976cbfdb5ce64e4379c0729"
+  integrity sha512-ILwfv7cwTPeAu4+QioScw/bGjP3xRlu2jwk2qX/2Qj79p6BalcVPggZpNuVfJFCbYr3UByp7t5+hkevW4cr1lw==
+
 p-limit@^1.1.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/p-limit/-/p-limit-1.3.0.tgz#b86bd5f0c25690911c7590fcbfc2010d54b3ccb8"
@@ -790,6 +795,11 @@ rimraf@^2.6.3:
   integrity sha512-mwqeW5XsA2qAejG46gYdENaxXjx9onRNCfn7L0duuP4hCuTIi/QO7PDK07KJfp1d+izWPrzEJDcSqBa0OZQriA==
   dependencies:
     glob "^7.1.3"
+
+rng@^0.2.2:
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/rng/-/rng-0.2.2.tgz#df43e80d9bc82ad4430bcfef03f49c717e8b2e8c"
+  integrity sha1-30PoDZvIKtRDC8/vA/SccX6LLow=
 
 "semver@2 || 3 || 4 || 5":
   version "5.7.0"
