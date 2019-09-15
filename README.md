@@ -24,22 +24,22 @@ create a flumeview vector instance.
 each key to be indexed. `key` can be any type that `hash` accepts.
 If `key` is an integer it is taken as the value that hash would have returned.
 
-### fvv.get({key, index}, cb)
+### fvv.get({vector, index}, cb)
 
-get a single value from the index. key must be a type accepted by hash,
+get a single value from the index. `vector` must be a type accepted by hash,
 index is the integer position to look at.
 
-### fvv.intersects({keys: [], reverse, limit})
+### fvv.intersects({vectors: [], reverse, limit})
 
 return a push-stream of the intersections between one or more indexes.
-the `keys` is an array of whatever type is accepted by `hash`.
+the `vectors` is an array of whatever type is accepted by `hash`.
 
-### fvv.union({keys: [], reverse, limit})
+### fvv.union({vectors: [], reverse, limit})
 
 return a push-stream of the union of one or more indexes.
 a record is included in the output if it's in either or both.
 If a record is in both indexes, it in _not included in the output twice_.
-the `keys` is an array of whatever type is accepted by `hash`.
+the `vectors` is an array of whatever type is accepted by `hash`.
 
 ### fvv.update(each_fn, cb)
 
