@@ -112,7 +112,7 @@ module.exports = function (version, hash, each) {
 
     function createQuery (Constructor, skip_zero) {
       return function (opts) {
-        var vectors = opts.keys.map(function (key) {
+        var vectors = opts.vectors.map(function (key) {
           return ht.get(hash(key))
         })
         //TODO: refactor handling zero length vectors.
