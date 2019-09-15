@@ -77,7 +77,7 @@ tape('stream', function (t) {
 tape('intersect', function (t) {
   var a = []
   db.vec.intersects({
-    keys: ['.bar:baz', '.quux:okay'],
+    vectors: ['.bar:baz', '.quux:okay'],
     values: true
   })
   .pipe({

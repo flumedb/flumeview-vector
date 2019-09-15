@@ -86,7 +86,7 @@ function testQuery(name, n) {
     var zero = true
     var key = name[0].toUpperCase()+n.toString(36)
     db.vec.intersects({
-      keys: [key], values: true
+      vectors: [key], values: true
     })
     .pipe({
       write: function (data) {

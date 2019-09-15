@@ -121,7 +121,7 @@ function testMatch(query, limit) {
     Object.keys(query).forEach(function (key) {
       var value = query[key], a = []
       db.vec.intersects({
-        keys: ['.'+key+':'+value],
+        vectors: ['.'+key+':'+value],
         //values: true
       })
       .pipe({
@@ -201,7 +201,7 @@ function testMatch(query, limit) {
     var a = []
     var start = Date.now()
     db.vec.intersects({
-      keys: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
+      vectors: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
       values: true,
       limit: limit
     })
@@ -228,7 +228,7 @@ function testMatch(query, limit) {
     var a = []
     var start = Date.now()
     db.vec.intersects({
-      keys: keys, values: true, reverse: true, limit: limit
+      vectors: keys, values: true, reverse: true, limit: limit
     })
     .pipe({
       write: function (d) {
@@ -248,7 +248,7 @@ function testMatch(query, limit) {
     tape('test union', function (t) {
       var a = []
       db.vec.union({
-        keys: keys, values: true, limit: limit
+        vectors: keys, values: true, limit: limit
       })
       .pipe({
         write: function (d) {
