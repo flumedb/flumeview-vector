@@ -79,7 +79,6 @@ tape('setup', function (t) {
 
 
   function done () {
-    console.log("DONE", Date.now() - start)
     start = Date.now()
 
     db.vec.since(function (v) {
@@ -236,7 +235,7 @@ function testMatch(query, limit) {
       },
       end: function () {
         var time = Date.now() - start
-        console.log(time, a.length, a.length/time)
+        console.log('query time:', time, a.length, a.length/time)
         assertQueryAnd(t, a, data, query)
         t.end()
     console.log("SINGLE =========================")
@@ -256,19 +255,18 @@ function testMatch(query, limit) {
         },
         end: function () {
           var time = Date.now() - start
-          console.log(time, a.length, a.length/time)
-          console.log("QUERY", query)
+          console.log('query time:', time, a.length, a.length/time)
           assertQueryOr(t, a, data, query)
           t.end()
         }
       })
     })
 
-  if(false && length === 2)
+  if(length === 2)
     tape('test difference:'+JSON.stringify(query), function (t) {
       var a = []
-      console.log("DIFFERENCE", keys)
       db.vec.difference({
+        keys: true,
         vectors: keys, values: true, limit: limit
       })
       .pipe({
@@ -277,9 +275,7 @@ function testMatch(query, limit) {
         },
         end: function () {
           var time = Date.now() - start
-          console.log(time, a.length, a.length/time)
-          console.log("QUERY ANDNOT", query)
-          console.log("QUERY ANDNOT", a)
+          console.log('query time:', time, a.length, a.length/time)
           assertQueryAndNot(t, a, data, query)
           t.end()
         }
