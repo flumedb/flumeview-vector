@@ -136,7 +136,13 @@ module.exports = function (version, hash, each) {
 
           var stream = new Constructor(blocks, vectors, !!opts.reverse, opts.limit)
           if(opts.values)
-            return stream.pipe(new PushAsync(function (seq, cb) { log.get(seq, cb) }))
+            return stream.pipe(new PushAsync(function (seq, cb) {
+              log.get(seq, function (err, data) {
+                if(err)            cb(err)
+                else if(opts.keys) cb(null, {key: seq, value: data})
+                else               cb(null, data)
+              })
+            }))
           else
             return stream
         }
