@@ -1,6 +1,10 @@
 var Cursor = require('./cursor')
 var CursorStream = require('./stream')
 
+function cmp (a, b, reverse) {
+  return (a < b ? -1 : a > b ? 1 : 0) * (reverse ? -1 : 1)
+}
+
 function Intersect (blocks, vectors, reverse, limit) {
   if(vectors.length === 1) {
     return new Cursor(blocks, vectors[0], reverse, limit)
@@ -12,9 +16,10 @@ function Intersect (blocks, vectors, reverse, limit) {
   this.value = 0
   this.ended = false
   this.matched = false
+  this.reverse = !!reverse
   CursorStream.call(this, limit)
   this._blocks = blocks
-  this.max = 0
+  this.max = this.reverse ? Infinity : 0
 }
 
 Intersect.prototype = new CursorStream()
@@ -23,7 +28,8 @@ Intersect.prototype.ready = function () {
   this.max = 0
   for(var i = 0; i < this.cursors.length; i++) {
     if(!this.cursors[i].ready() /*|| this.cursors[i].isEnded()*/) return false
-    this.max = Math.max(this.cursors[i].value, this.max)
+    var value = this.cursors[i].value
+    this.max = cmp(value, this.max, this.reverse) < 0 ? value : this.max
   }
   return true
 }
@@ -38,12 +44,12 @@ Intersect.prototype.next = function () {
     loop = false
     for(var i = 0; i < cursors.length; i++) {
       //TODO: skip forward, rather than just step forward.
-      while(cursors[i].value < max) {
+      while(cmp(cursors[i].value, max, this.reverse) < 0) {
         if(!cursors[i].ready()) return 0
         cursors[i].next()
       }
 
-      if(cursors[i].value > max) {
+      if(cmp(cursors[i].value, max, this.reverse) > 0) {
         max = cursors[i].value
         loop = true
         break;
