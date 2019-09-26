@@ -221,7 +221,7 @@ function testMatch(query, limit) {
   var length = keys.length
 
   //disable reverse searches for now...
-  if(length == 1)
+//  if(length <= 2)
   tape('test matches:'+JSON.stringify(query)+ ', reverse', function (t) {
     console.log("SINGLE ************************")
     var a = []
