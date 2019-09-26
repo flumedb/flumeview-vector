@@ -21,9 +21,10 @@ function Cursor(blocks, vector, reverse, limit) {
   this._blocks = blocks
   this.block_size = blocks.block_size
   this.block_index = ~~(vector/blocks.block_size)
-  this.index = 0 //zero
-  this._size = this._start = this._next = this._prev = 0
+  //if reverse, we need to find the last block...
   this.reverse = !!reverse
+  this.index = this.reverse ? null : 0 //zero
+  this._size = this._start = this._next = this._prev = 0
   this.format = new Format(blocks.block_size)
   this.matched = false //used by intersect
   this.limit = limit || -1
@@ -40,6 +41,17 @@ Cursor.prototype.init = function (block) {
   this._length = this.format.length(block, _vector, BS)
   this._next   = this.format.next  (block, _vector, BS)
   this._prev   = this.format.prev  (block, _vector, BS)
+  if(this.reverse && this.index == null) {
+      console.log("REVERSE:, scan to next block")
+    if(this._next) {
+      this.block_index = this._next
+      this.block = null
+      //else it should loop back after calling ready...
+    } else {
+      this.index = this._start + this._length - 1
+      console.log("FOUND LAST INDEX:", this.index, [this._start, this._length])
+    }
+  }
   this.value = 0
 }
 
