@@ -221,7 +221,7 @@ function testMatch(query, limit) {
   var length = keys.length
 
   //disable reverse searches for now...
-  if(false && length == 1)
+  if(length == 1)
   tape('test matches:'+JSON.stringify(query)+ ', reverse', function (t) {
     console.log("SINGLE ************************")
     var a = []
@@ -236,7 +236,7 @@ function testMatch(query, limit) {
       end: function () {
         var time = Date.now() - start
         console.log('query time:', time, a.length, a.length/time)
-        assertQueryAnd(t, a, data, query)
+        assertQueryAnd(t, a, data, query, true)
         t.end()
     console.log("SINGLE =========================")
       }
