@@ -167,7 +167,7 @@ function testMatch(query, limit) {
     assertQuery(t, a, data, query, function (e) {
       for(var k in query) if(e[k] === query[k]) return true
       return false
-    })
+    }, reverse)
   }
 
   function assertQueryAndNot(t, a, data, query, reverse) {
@@ -184,8 +184,14 @@ function testMatch(query, limit) {
   }
 
   function assertQuery(t, a, data, query, fn, reverse) {
-    var _data = data.filter(fn)
+    var n = limit
+    var _data = data.filter(function (value) {
+        var v = fn(value)
+        if(v && n-- > 0) console.log(value, n)
+        return v
+    })
     if(reverse) _data = _data.reverse()
+    console.log("_DATA.LENGTH", _data.length)
     _data = _data.slice(0, limit === -1 ? _data.length : limit)
     if(limit > -1) {
       console.log('length, limit', a.length, limit)
@@ -259,8 +265,6 @@ function testMatch(query, limit) {
       })
     })
 
-//    if(false)
-  if(length == 2 && !limit)
     tape('test union, reverse:'+JSON.stringify(query)+' limit:'+limit, function (t) {
       var a = []
       db.vec.union({
@@ -278,7 +282,6 @@ function testMatch(query, limit) {
         }
       })
     })
-
   }
 
   if(length === 2)
@@ -313,7 +316,7 @@ testMatch({fruit: 'cherry', boolean: false, letter: 'A'})
 testMatch({boolean: true}, 50)
 testMatch({fruit: 'durian'}, 7)
 
-testMatch({fruit: 'cherry', boolean: false}, 2)
+testMatch({fruit: 'cherry', boolean: false}, 5)
 testMatch({fruit: 'apple', boolean: true}, 9)
 testMatch({dog: 'Rufus', boolean: true}, 2)
 testMatch({letter: 'ABC'}, 1)
