@@ -42,14 +42,12 @@ Cursor.prototype.init = function (block) {
   this._next   = this.format.next  (block, _vector, BS)
   this._prev   = this.format.prev  (block, _vector, BS)
   if(this.reverse && this.index == null) {
-      console.log("REVERSE:, scan to next block")
     if(this._next) {
       this.block_index = this._next
       this.block = null
       //else it should loop back after calling ready...
     } else {
       this.index = this._start + this._length - 1
-      console.log("FOUND LAST INDEX:", this.index, [this._start, this._length])
     }
   }
   this.value = 0

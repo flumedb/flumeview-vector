@@ -9,8 +9,8 @@ function Union (blocks, vectors, reverse, limit) {
   if(vectors.length === 1) {
     return new Cursor(blocks, vectors[0], reverse, limit)
   }
-  this.cursors = vectors.map(function (v) {
-    return new Cursor(blocks, v, reverse)
+  this.cursors = vectors.map(function (vector) {
+    return new Cursor(blocks, vector, reverse)
   })
 
   this.value = 0
@@ -59,6 +59,7 @@ Union.prototype.next = function () {
       }
     }
   }
+
   return this.value = min
 }
 
