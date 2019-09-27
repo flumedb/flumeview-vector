@@ -111,66 +111,25 @@ function Filter(query) {
   }
 }
 
-function testMatch(query, limit) {
+function testMatch(query, limit, reverse) {
   limit = limit || -1
-  tape('test separate:'+JSON.stringify(query), function (t) {
-    //return t.end()
-    var n = Object.keys(query).length, results = {}
-    var acc
-    Object.keys(query).forEach(function (key) {
-      var value = query[key], a = []
-      db.vec.intersects({
-        vectors: ['.'+key+':'+value],
-        //values: true
-      })
-      .pipe({
-        write: function (d) {
-          a.push(d) //bipf.decode(d, 0))
-        },
-        end: function () {
-          var _data = data.filter(function (e) { return e[key] === value })
-          //t.deepEqual(a, _data)
-          t.equal(a.length, _data.length, 'has '+_data.length + ' items')
-          results[key] = a
-          acc = acc ? intersection.intersect(acc, a) : a
-          next()
-        }
-      })
-    })
+  var string = JSON.stringify({query: query, limit: limit == -1 ? undefined : limit, reverse:reverse || undefined})
 
-    function next () {
-      if(--n) return
-      pull(
-        pull.values(acc),
-        pull.asyncMap(function (seq, cb) {
-          db.get(seq, function (err, buf) {
-            cb(err, bipf.decode(buf, 0))
-          })
-        }),
-        pull.collect(function (err, ary) {
-          _data = data.filter(Filter(query))
-          t.deepEqual(ary, _data, 'MERGE IS EQUAL')
-          t.end()
-        })
-      )
-    }
-  })
-
-  function assertQueryAnd(t, a, data, query, reverse) {
+  function assertQueryAnd(t, a, data, query) {
     assertQuery(t, a, data, query, function (e) {
       for(var k in query) if(e[k] !== query[k]) return false
       return true
-    }, reverse)
+    })
   }
 
   function assertQueryOr(t, a, data, query, reverse) {
     assertQuery(t, a, data, query, function (e) {
       for(var k in query) if(e[k] === query[k]) return true
       return false
-    }, reverse)
+    })
   }
 
-  function assertQueryAndNot(t, a, data, query, reverse) {
+  function assertQueryAndNot(t, a, data, query) {
     assertQuery(t, a, data, query, function (e) {
       var first = 0
       for(var k in query) {
@@ -180,10 +139,10 @@ function testMatch(query, limit) {
         else if(e[k] !== query[k]) return false
       }
       return true
-    }, reverse)
+    })
   }
 
-  function assertQuery(t, a, data, query, fn, reverse) {
+  function assertQuery(t, a, data, query, fn) {
     var n = limit
     var _data = data.filter(function (value) {
         var v = fn(value)
@@ -191,7 +150,6 @@ function testMatch(query, limit) {
         return v
     })
     if(reverse) _data = _data.reverse()
-    console.log("_DATA.LENGTH", _data.length)
     _data = _data.slice(0, limit === -1 ? _data.length : limit)
     if(limit > -1) {
       console.log('length, limit', a.length, limit)
@@ -202,13 +160,13 @@ function testMatch(query, limit) {
     t.deepEqual(a, _data, 'output is equal')
   }
 
-  tape('test matches:'+JSON.stringify(query), function (t) {
+  tape('test matches:'+string, function (t) {
     var a = []
     var start = Date.now()
     db.vec.intersects({
       vectors: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
       values: true,
-      limit: limit
+      limit: limit, reverse: reverse
     })
     .pipe({
       write: function (d) {
@@ -226,31 +184,11 @@ function testMatch(query, limit) {
   var keys = Object.keys(query).map(function (k) { return '.'+k+':'+query[k] })
   var length = keys.length
 
-  //disable reverse searches for now...
-  tape('test matches:'+JSON.stringify(query)+ ', reverse', function (t) {
-    var a = []
-    var start = Date.now()
-    db.vec.intersects({
-      vectors: keys, values: true, reverse: true, limit: limit
-    })
-    .pipe({
-      write: function (d) {
-        a.push(bipf.decode(d, 0))
-      },
-      end: function () {
-        var time = Date.now() - start
-        console.log('query time:', time, a.length, a.length/time)
-        assertQueryAnd(t, a, data, query, true)
-        t.end()
-      }
-    })
-  })
-
   if(length >= 2) {
-    tape('test union', function (t) {
+    tape('test union:'+string, function (t) {
       var a = []
       db.vec.union({
-        vectors: keys, values: true, limit: limit
+        vectors: keys, values: true, limit: limit, reverse: reverse
       })
       .pipe({
         write: function (d) {
@@ -264,32 +202,14 @@ function testMatch(query, limit) {
         }
       })
     })
-
-    tape('test union, reverse:'+JSON.stringify(query)+' limit:'+limit, function (t) {
-      var a = []
-      db.vec.union({
-        vectors: keys, values: true, limit: limit, reverse: true
-      })
-      .pipe({
-        write: function (d) {
-          a.push(bipf.decode(d, 0))
-        },
-        end: function () {
-          var time = Date.now() - start
-          console.log('query time:', time, a.length, a.length/time)
-          assertQueryOr(t, a, data, query, true)
-          t.end()
-        }
-      })
-    })
   }
 
-  if(length === 2)
-    tape('test difference:'+JSON.stringify(query), function (t) {
+  if(length === 2 && !reverse)
+    tape('test difference:'+string, function (t) {
       var a = []
       db.vec.difference({
         keys: true,
-        vectors: keys, values: true, limit: limit
+        vectors: keys, values: true, limit: limit, reverse: reverse
       })
       .pipe({
         write: function (d) {
@@ -321,3 +241,21 @@ testMatch({fruit: 'apple', boolean: true}, 9)
 testMatch({dog: 'Rufus', boolean: true}, 2)
 testMatch({letter: 'ABC'}, 1)
 testMatch({fruit: 'cherry', boolean: false, letter: 'A'}, 3)
+
+
+testMatch({boolean: true}, null, true)
+testMatch({fruit: 'durian'}, null, true)
+testMatch({fruit: 'cherry', boolean: false}, null, true)
+testMatch({fruit: 'apple', boolean: true}, null, true)
+testMatch({dog: 'Rufus', boolean: true}, null, true)
+testMatch({letter: 'ABC'}, null, true) //empty
+testMatch({fruit: 'cherry', boolean: false, letter: 'A'}, null, true)
+
+testMatch({boolean: true}, 50, true)
+testMatch({fruit: 'durian'}, 7, true)
+
+testMatch({fruit: 'cherry', boolean: false}, 5, true)
+testMatch({fruit: 'apple', boolean: true}, 9, true)
+testMatch({dog: 'Rufus', boolean: true}, 2, true)
+testMatch({letter: 'ABC'}, 1, true)
+testMatch({fruit: 'cherry', boolean: false, letter: 'A'}, 3, true)
