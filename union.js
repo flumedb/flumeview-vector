@@ -1,6 +1,10 @@
 var Cursor = require('./cursor')
 var CursorStream = require('./stream')
 
+function cmp (a, b, reverse) {
+  return (a < b ? -1 : a > b ? 1 : 0) * (reverse ? -1 : 1)
+}
+
 function Union (blocks, vectors, reverse, limit) {
   if(vectors.length === 1) {
     return new Cursor(blocks, vectors[0], reverse, limit)
@@ -12,6 +16,7 @@ function Union (blocks, vectors, reverse, limit) {
   this.value = 0
   this.ended = false
   this.matched = false
+  this.reverse = !!reverse
   CursorStream.call(this, limit)
   this._blocks = blocks
   this.min = 0
@@ -20,37 +25,41 @@ function Union (blocks, vectors, reverse, limit) {
 Union.prototype = new CursorStream()
 
 Union.prototype.ready = function () {
-  this.min = Infinity
+  var infinite = this.reverse ? -Infinity : Infinity
+  this.min = infinite
   for(var i = 0; i < this.cursors.length; i++) {
     var cursor = this.cursors[i]
     if(!cursor.isEnded()) {
       if(!cursor.ready()) return false
-      this.min = Math.min(cursor.value, this.min)
+      this.min = cmp(cursor.value, this.min, this.reverse) < 0 ? cursor.value : this.min
     }
   }
-  if(this.min == Infinity) {
+  if(this.min == infinite) {
     this.ended = true
     return false
   }
+  this.value = this.min
   return true
 }
 
 Union.prototype.next = function () {
   if(!this.ready()) throw new Error('next called when not ready')
   var min = this.min
+  this.ready()
   var loop = true
   while(loop) {
     loop = false
     for(var i = 0; i < this.cursors.length; i++) {
       var cursor = this.cursors[i]
-      //TODO: skip forward, rather than just step forward.
-      if(!cursor.isEnded() && cursor.value <= min) {
-        if(!cursor.ready()) return 0
+      if(!cursor.isEnded() && cmp(cursor.value, min, this.reverse) <= 0) {
+        if(!cursor.ready()) {
+          return 0
+        }
         cursor.next()
       }
     }
   }
-  return min
+  return this.value = min
 }
 
 Union.prototype.update = function (cb) {
@@ -69,6 +78,7 @@ Union.prototype.update = function (cb) {
   done()
   function done (_, block) {
     if(--c) return
+    self.ready() //XXX stackoverflow without this.
     cb()
   }
 }
