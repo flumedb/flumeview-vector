@@ -221,9 +221,7 @@ function testMatch(query, limit) {
   var length = keys.length
 
   //disable reverse searches for now...
-//  if(length <= 2)
   tape('test matches:'+JSON.stringify(query)+ ', reverse', function (t) {
-    console.log("SINGLE ************************")
     var a = []
     var start = Date.now()
     db.vec.intersects({
@@ -238,12 +236,11 @@ function testMatch(query, limit) {
         console.log('query time:', time, a.length, a.length/time)
         assertQueryAnd(t, a, data, query, true)
         t.end()
-    console.log("SINGLE =========================")
       }
     })
   })
 
-  if(length >= 2)
+  if(length >= 2) {
     tape('test union', function (t) {
       var a = []
       db.vec.union({
@@ -261,6 +258,28 @@ function testMatch(query, limit) {
         }
       })
     })
+
+//    if(false)
+  if(length == 2 && !limit)
+    tape('test union, reverse:'+JSON.stringify(query)+' limit:'+limit, function (t) {
+      var a = []
+      db.vec.union({
+        vectors: keys, values: true, limit: limit, reverse: true
+      })
+      .pipe({
+        write: function (d) {
+          a.push(bipf.decode(d, 0))
+        },
+        end: function () {
+          var time = Date.now() - start
+          console.log('query time:', time, a.length, a.length/time)
+          assertQueryOr(t, a, data, query, true)
+          t.end()
+        }
+      })
+    })
+
+  }
 
   if(length === 2)
     tape('test difference:'+JSON.stringify(query), function (t) {
@@ -288,7 +307,7 @@ testMatch({fruit: 'durian'})
 testMatch({fruit: 'cherry', boolean: false})
 testMatch({fruit: 'apple', boolean: true})
 testMatch({dog: 'Rufus', boolean: true})
-testMatch({letter: 'ABC'})
+testMatch({letter: 'ABC'}) //empty
 testMatch({fruit: 'cherry', boolean: false, letter: 'A'})
 
 testMatch({boolean: true}, 50)
