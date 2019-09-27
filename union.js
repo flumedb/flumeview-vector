@@ -1,9 +1,6 @@
 var Cursor = require('./cursor')
 var CursorStream = require('./stream')
-
-function cmp (a, b, reverse) {
-  return (a < b ? -1 : a > b ? 1 : 0) * (reverse ? -1 : 1)
-}
+var cmp = require('./cmp')
 
 function Union (blocks, vectors, reverse, limit) {
   if(vectors.length === 1) {
@@ -31,7 +28,7 @@ Union.prototype.ready = function () {
     var cursor = this.cursors[i]
     if(!cursor.isEnded()) {
       if(!cursor.ready()) return false
-      this.min = cmp(cursor.value, this.min, this.reverse) < 0 ? cursor.value : this.min
+      this.min = cmp.lt(cursor.value, this.min, this.reverse) ? cursor.value : this.min
     }
   }
   if(this.min == infinite) {
@@ -51,7 +48,7 @@ Union.prototype.next = function () {
     loop = false
     for(var i = 0; i < this.cursors.length; i++) {
       var cursor = this.cursors[i]
-      if(!cursor.isEnded() && cmp(cursor.value, min, this.reverse) <= 0) {
+      if(!cursor.isEnded() && cmp.lte(cursor.value, min, this.reverse)) {
         if(!cursor.ready()) {
           return 0
         }

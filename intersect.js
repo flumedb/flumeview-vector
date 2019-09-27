@@ -1,9 +1,7 @@
 var Cursor = require('./cursor')
 var CursorStream = require('./stream')
 
-function cmp (a, b, reverse) {
-  return (a < b ? -1 : a > b ? 1 : 0) * (reverse ? -1 : 1)
-}
+var cmp = require('./cmp')
 
 function Intersect (blocks, vectors, reverse, limit) {
   if(vectors.length === 1) {
@@ -29,7 +27,7 @@ Intersect.prototype.ready = function () {
   for(var i = 0; i < this.cursors.length; i++) {
     if(!this.cursors[i].ready() /*|| this.cursors[i].isEnded()*/) return false
     var value = this.cursors[i].value
-    this.max = cmp(value, this.max, this.reverse) < 0 ? value : this.max
+    this.max = cmp.lt(value, this.max, this.reverse) ? value : this.max
   }
   return true
 }
@@ -44,12 +42,12 @@ Intersect.prototype.next = function () {
     loop = false
     for(var i = 0; i < cursors.length; i++) {
       //TODO: skip forward, rather than just step forward.
-      while(cmp(cursors[i].value, max, this.reverse) < 0) {
+      while(cmp.lt(cursors[i].value, max, this.reverse)) {
         if(!cursors[i].ready()) return 0
         cursors[i].next()
       }
 
-      if(cmp(cursors[i].value, max, this.reverse) > 0) {
+      if(cmp.gt(cursors[i].value, max, this.reverse)) {
         max = cursors[i].value
         loop = true
         break;
