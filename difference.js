@@ -1,5 +1,6 @@
 var Cursor = require('./cursor')
 var CursorStream = require('./stream')
+var cmp = require('./cmp')
 
 function Difference (blocks, vectors, reverse, limit) {
   if(vectors.length !== 2) throw new Error('difference takes exactly two inputs')
@@ -7,6 +8,7 @@ function Difference (blocks, vectors, reverse, limit) {
   this.b = new Cursor(blocks, vectors[1], reverse)
   this.value = 0
   this.ended = false
+  this.reverse = !!reverse
   CursorStream.call(this, limit)
   this._blocks = blocks
 }
@@ -36,7 +38,7 @@ Difference.prototype.next = function () {
       this.a.next()
       this.value = this.a.value
     }
-    else if(this.a.value < this.b.value) {
+    else if(cmp.lt(this.a.value, this.b.value, this.reverse)) {
       this.value = this.a.value
       this.a.next()
       return this.value
@@ -45,7 +47,7 @@ Difference.prototype.next = function () {
       this.a.next(); this.b.next()
       loop = true
     }
-    else if(this.a.value > this.b.value) {
+    else if(cmp.gt(this.a.value, this.b.value, this.reverse)) {
       loop = true
       this.b.next()
     }
