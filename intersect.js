@@ -3,13 +3,14 @@ var CursorStream = require('./stream')
 
 var cmp = require('./cmp')
 
-function Intersect (blocks, vectors, reverse, limit) {
-  if(vectors.length === 1) {
-    return new Cursor(blocks, vectors[0], reverse, limit)
-  }
-  this.cursors = vectors.map(function (v) {
-    return new Cursor(blocks, v, reverse)
-  })
+function Intersect (blocks, cursors, reverse, limit) {
+  this.cursors = cursors
+//  if(vectors.length === 1) {
+//    return new Cursor(blocks, vectors[0], reverse, limit)
+//  }
+//  this.cursors = vectors.map(function (v) {
+//    return new Cursor(blocks, v, reverse)
+//  })
 
   this.value = 0
   this.ended = false

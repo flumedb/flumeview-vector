@@ -2,10 +2,12 @@ var Cursor = require('./cursor')
 var CursorStream = require('./stream')
 var cmp = require('./cmp')
 
-function Difference (blocks, vectors, reverse, limit) {
-  if(vectors.length !== 2) throw new Error('difference takes exactly two inputs')
-  this.a = new Cursor(blocks, vectors[0], reverse)
-  this.b = new Cursor(blocks, vectors[1], reverse)
+function Difference (blocks, cursors, reverse, limit) {
+  if(cursors.length !== 2) throw new Error('difference takes exactly two inputs')
+//  this.a = new Cursor(blocks, vectors[0], reverse)
+//  this.b = new Cursor(blocks, vectors[1], reverse)
+  this.a = cursors[0]
+  this.b = cursors[1]
   this.value = 0
   this.ended = false
   this.reverse = !!reverse

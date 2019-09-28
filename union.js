@@ -2,14 +2,15 @@ var Cursor = require('./cursor')
 var CursorStream = require('./stream')
 var cmp = require('./cmp')
 
-function Union (blocks, vectors, reverse, limit) {
-  if(vectors.length === 1) {
-    return new Cursor(blocks, vectors[0], reverse, limit)
-  }
-  this.cursors = vectors.map(function (vector) {
-    return new Cursor(blocks, vector, reverse)
-  })
-
+function Union (blocks, cursors, reverse, limit) {
+//  if(vectors.length === 1) {
+//    return new Cursor(blocks, vectors[0], reverse, limit)
+//  }
+//  this.cursors = vectors.map(function (vector) {
+//    return new Cursor(blocks, vector, reverse)
+//  })
+//
+  this.cursors = cursors
   this.value = 0
   this.ended = false
   this.matched = false

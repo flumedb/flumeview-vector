@@ -15,6 +15,7 @@ var Blocks      = require('./blocks')
 var Intersect   = require('./intersect')
 var Union       = require('./union')
 var Difference  = require('./difference')
+var Cursor = require('./cursor')
 
 /*
 the view takes a map and an array
@@ -110,42 +111,59 @@ module.exports = function (version, hash, each) {
       }
     }
 
+    function Empty () {
+      return {
+        resume: function () {
+          this.sink.end()
+        },
+        pipe: function (dest) {
+          this.sink = dest
+          if(!dest.paused) dest.end()
+        }
+      }
+    }
+
     function createQuery (Constructor, skip_zero) {
       return function (opts) {
-        var vectors = opts.vectors.map(function (key) {
-          return ht.get(hash(key))
-        })
-        //TODO: refactor handling zero length vectors.
-        //      if a single vector is zero for an and, output is zero.
-        //      for an or, the zero length vector is just dropped.
-        //      for difference, if the first vector is zero, output is zero
-        //                      if the second vector is zero, output is first vector.
-        if(!skip_zero)
-          for(var i = 0; i < vectors.length; i++)
-            if(vectors[i] === 0) {
-              return {
-                resume: function () {
-                  this.sink.end()
-                },
-                pipe: function (dest) {
-                  this.sink = dest
-                  if(!dest.paused) dest.end()
-                }
-              }
-            }
-
-          var stream = new Constructor(blocks, vectors, !!opts.reverse, opts.limit)
-          if(opts.values)
-            return stream.pipe(new PushAsync(function (seq, cb) {
-              log.get(seq, function (err, data) {
-                if(err)            cb(err)
-                else if(opts.keys) cb(null, {key: seq, value: data})
-                else               cb(null, data)
-              })
-            }))
-          else
-            return stream
+        var stream, skip_zero
+        if(opts.vectors.length == 1) {
+          var vector = ht.get(hash(opts.vectors[0]))
+          if(vector) stream = new Cursor(blocks, vector, !!opts.reverse, opts.limit)
+          else return Empty()
         }
+        else {
+          var vectors = opts.vectors.map(function (key) {
+            return ht.get(hash(key))
+          })
+          //TODO: refactor handling zero length vectors.
+          //      if a single vector is zero for an and, output is zero.
+          //      for an or, the zero length vector is just dropped.
+          //      for difference, if the first vector is zero, output is zero
+          //                      if the second vector is zero, output is first vector.
+          if(!skip_zero)
+            for(var i = 0; i < vectors.length; i++)
+              if(vectors[i] === 0) return Empty()
+          else
+            vectors = vectors.filter(Boolean)
+
+          var cursors = vectors.map(function (v) {
+            return new Cursor(blocks, v, !!opts.reverse, opts.limit)
+          })
+          stream = new Constructor(blocks, cursors, !!opts.reverse, opts.limit)
+        }
+
+        if(opts.values)
+          return stream.pipe(new PushAsync(function (seq, cb) {
+            log.get(seq, function (err, data) {
+              if(err)            cb(err)
+              else if(opts.keys) cb(null, {key: seq, value: data})
+              else               cb(null, data)
+            })
+          }))
+        else
+          return stream
+
+      }
     }
 
     return {

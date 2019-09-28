@@ -111,7 +111,8 @@ function Filter(query) {
   }
 }
 
-function testMatch(query, limit, reverse) {
+function testMatch(opts) {
+  var query = opts.query, limit = opts.limit, reverse = opts.reverse
   limit = limit || -1
   var string = JSON.stringify({query: query, limit: limit == -1 ? undefined : limit, reverse:reverse || undefined})
 
@@ -225,37 +226,37 @@ function testMatch(query, limit, reverse) {
     })
 }
 
-testMatch({boolean: true})
-testMatch({fruit: 'durian'})
-testMatch({fruit: 'cherry', boolean: false})
-testMatch({fruit: 'apple', boolean: true})
-testMatch({dog: 'Rufus', boolean: true})
-testMatch({letter: 'ABC'}) //empty
-testMatch({fruit: 'cherry', boolean: false, letter: 'A'})
+testMatch({query:{boolean: true}})
+testMatch({query: {fruit: 'durian'}})
+testMatch({query: {fruit: 'cherry', boolean: false}})
+testMatch({query: {fruit: 'apple', boolean: true}})
+testMatch({query: {dog: 'Rufus', boolean: true}})
+testMatch({query: {letter: 'ABC'}}) //empty
+testMatch({query: {fruit: 'cherry', boolean: false, letter: 'A'}})
 
-testMatch({boolean: true}, 50)
-testMatch({fruit: 'durian'}, 7)
+testMatch({query: {boolean: true}, limit: 50})
+testMatch({query: {fruit: 'durian'}, limit: 7})
 
-testMatch({fruit: 'cherry', boolean: false}, 5)
-testMatch({fruit: 'apple', boolean: true}, 9)
-testMatch({dog: 'Rufus', boolean: true}, 2)
-testMatch({letter: 'ABC'}, 1)
-testMatch({fruit: 'cherry', boolean: false, letter: 'A'}, 3)
+testMatch({query: {fruit: 'cherry', boolean: false}, limit: 5})
+testMatch({query: {fruit: 'apple', boolean: true}, limit: 9})
+testMatch({query: {dog: 'Rufus', boolean: true}, limit: 2})
+testMatch({query: {letter: 'ABC'}, limit: 1})
+testMatch({query: {fruit: 'cherry', boolean: false, letter: 'A'}, limit: 3})
 
 
-testMatch({boolean: true}, null, true)
-testMatch({fruit: 'durian'}, null, true)
-testMatch({fruit: 'cherry', boolean: false}, null, true)
-testMatch({fruit: 'apple', boolean: true}, null, true)
-testMatch({dog: 'Rufus', boolean: true}, null, true)
-testMatch({letter: 'ABC'}, null, true) //empty
-testMatch({fruit: 'cherry', boolean: false, letter: 'A'}, null, true)
+testMatch({query: {boolean: true}, reverse: true})
+testMatch({query: {fruit: 'durian'}, reverse: true})
+testMatch({query: {fruit: 'cherry', boolean: false}, reverse: true})
+testMatch({query: {fruit: 'apple', boolean: true}, reverse: true})
+testMatch({query: {dog: 'Rufus', boolean: true}, reverse: true})
+testMatch({query: {letter: 'ABC'}, reverse: true}) //empty
+testMatch({query: {fruit: 'cherry', boolean: false, letter: 'A'}, reverse: true})
 
-testMatch({boolean: true}, 50, true)
-testMatch({fruit: 'durian'}, 7, true)
+testMatch({query: {boolean: true}, limit: 50, reverse: true})
+testMatch({query: {fruit: 'durian'}, limit: 7, reverse: true})
 
-testMatch({fruit: 'cherry', boolean: false}, 5, true)
-testMatch({fruit: 'apple', boolean: true}, 9, true)
-testMatch({dog: 'Rufus', boolean: true}, 2, true)
-testMatch({letter: 'ABC'}, 1, true)
-testMatch({fruit: 'cherry', boolean: false, letter: 'A'}, 3, true)
+testMatch({query: {fruit: 'cherry', boolean: false}, limit: 5, reverse: true})
+testMatch({query: {fruit: 'apple', boolean: true}, limit: 9, reverse: true})
+testMatch({query: {dog: 'Rufus', boolean: true}, limit:2, reverse: true})
+testMatch({query: {letter: 'ABC'}, limit:1, reverse:true}) //reverse doesn't matter if limit=1
+testMatch({query: {fruit: 'cherry', boolean: false, letter: 'A'}, limit: 3, reverse: true})
