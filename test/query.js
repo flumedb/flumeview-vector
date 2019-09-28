@@ -204,7 +204,7 @@ function testMatch(query, limit, reverse) {
     })
   }
 
-  if(length === 2 && !reverse)
+  if(length === 2)
     tape('test difference:'+string, function (t) {
       var a = []
       db.vec.difference({
