@@ -161,11 +161,14 @@ function testMatch(opts) {
     t.deepEqual(a, _data, 'output is equal')
   }
 
+  var keys = Object.keys(query).map(function (k) { return '.'+k+':'+query[k] })
+  var length = keys.length
+
   tape('test matches:'+string, function (t) {
     var a = []
     var start = Date.now()
-    db.vec.intersects({
-      vectors: Object.keys(query).map(function (k) { return '.'+k+':'+query[k] }),
+    db.vec.query({
+      query: ['AND'].concat(keys),
       values: true,
       limit: limit, reverse: reverse
     })
@@ -182,14 +185,12 @@ function testMatch(opts) {
     })
   })
 
-  var keys = Object.keys(query).map(function (k) { return '.'+k+':'+query[k] })
-  var length = keys.length
 
   if(length >= 2) {
     tape('test union:'+string, function (t) {
       var a = []
-      db.vec.union({
-        vectors: keys, values: true, limit: limit, reverse: reverse
+      db.vec.query({
+        query: ['OR'].concat(keys), values: true, limit: limit, reverse: reverse
       })
       .pipe({
         write: function (d) {
@@ -208,9 +209,9 @@ function testMatch(opts) {
   if(length === 2)
     tape('test difference:'+string, function (t) {
       var a = []
-      db.vec.difference({
+      db.vec.query({
         keys: true,
-        vectors: keys, values: true, limit: limit, reverse: reverse
+        query: ['DIFF'].concat(keys), values: true, limit: limit, reverse: reverse
       })
       .pipe({
         write: function (d) {

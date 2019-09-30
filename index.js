@@ -36,6 +36,10 @@ use intersection (and) disjunction (or), etc operators to query, just
 by looking at the index values, not loading the records.
 */
 
+function isString(s) {
+  return 'string' === typeof s
+}
+
 var block_size = 65536
 module.exports = function (version, hash, each) {
   return function (log, name) {
@@ -123,33 +127,20 @@ module.exports = function (version, hash, each) {
       }
     }
 
-    function createQuery (Constructor) {
-      return function (opts) {
-        var reverse = !!opts.reverse, limit = opts.limit
-        var cursors = opts.vectors.map(function (key) {
-          return new Cursor(blocks, ht.get(hash(key)), reverse, opts.vectors.length && limit)
+    function Values (opts) {
+      return new PushAsync(function (seq, cb) {
+        log.get(seq, function (err, data) {
+          if(err)            cb(err)
+          else if(opts.keys) cb(null, {key: seq, value: data})
+          else               cb(null, data)
         })
-        var stream = new Constructor(blocks, cursors, reverse, limit)
-
-        if(!opts.values)
-          return stream
-        else
-          return stream.pipe(new PushAsync(function (seq, cb) {
-            log.get(seq, function (err, data) {
-              if(err)            cb(err)
-              else if(opts.keys) cb(null, {key: seq, value: data})
-              else               cb(null, data)
-            })
-          }))
-      }
+      })
     }
 
     return {
       methods: {
         get: 'async', //stream: 'source'
-        intersects: 'sync',
-        union: 'sync',
-        difference: 'sync',
+        query: 'sync',
         update: 'async'
       },
       since: since,
@@ -190,9 +181,21 @@ module.exports = function (version, hash, each) {
             })
         })
       },
-      intersects: createQuery(Intersect),
-      union: createQuery(Union),
-      difference: createQuery(Difference)
+      query: function (opts) {
+        var reverse = !!opts.reverse, limit = opts.limit
+        var stream = (function evalQuery(args, top) {
+          top = top === true
+          if(isString(args))
+            return new Cursor(blocks, ht.get(hash(args)), reverse, top ? limit : null)
+          else
+            return new (
+              ({AND: Intersect, OR: Union, DIFF: Difference})
+                [args[0]]
+            )(blocks, args.slice(1).map(evalQuery), reverse, top ? limit : null)
+        })(opts.query, true)
+        if(!opts.values) return stream
+        else             return stream.pipe(Values(opts))
+      }
     }
   }
 }
