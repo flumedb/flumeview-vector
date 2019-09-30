@@ -11,7 +11,6 @@ CursorStream.prototype.resume = function () {
   if(this._resuming) return //prevent re-entrancy
 
   var self = this
-  console.log(this.sink.paused, this.ready())
   if(this.sink.paused) return
 
   if(this.isEnded()) return this.sink.end()
