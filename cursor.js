@@ -14,7 +14,25 @@ var Format = require('./format')
 //so since flumelog offset can be zero, use value - 1 to get real value.
 //and when storing +1
 
+function EmptyCursor () {
+  return {
+    resume: function () {
+      this.sink.end()
+    },
+    pipe: function (dest) {
+      this.sink = dest
+      if(!dest.paused) dest.end()
+    },
+    ready: function () { return false },
+    isEnded: function () { return true },
+    update: function (cb) { cb() }
+  }
+}
+
+
 function Cursor(blocks, vector, reverse, limit) {
+  if(vector == 0)
+    return new EmptyCursor()
   this.vector = vector
   this.block = null
   if(!blocks.block_size) throw new Error('block_size undefined')

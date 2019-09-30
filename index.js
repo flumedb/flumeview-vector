@@ -123,36 +123,17 @@ module.exports = function (version, hash, each) {
       }
     }
 
-    function createQuery (Constructor, skip_zero) {
+    function createQuery (Constructor) {
       return function (opts) {
-        var stream, skip_zero
-        if(opts.vectors.length == 1) {
-          var vector = ht.get(hash(opts.vectors[0]))
-          if(vector) stream = new Cursor(blocks, vector, !!opts.reverse, opts.limit)
-          else return Empty()
-        }
-        else {
-          var vectors = opts.vectors.map(function (key) {
-            return ht.get(hash(key))
-          })
-          //TODO: refactor handling zero length vectors.
-          //      if a single vector is zero for an and, output is zero.
-          //      for an or, the zero length vector is just dropped.
-          //      for difference, if the first vector is zero, output is zero
-          //                      if the second vector is zero, output is first vector.
-          if(!skip_zero)
-            for(var i = 0; i < vectors.length; i++)
-              if(vectors[i] === 0) return Empty()
-          else
-            vectors = vectors.filter(Boolean)
+        var reverse = !!opts.reverse, limit = opts.limit
+        var cursors = opts.vectors.map(function (key) {
+          return new Cursor(blocks, ht.get(hash(key)), reverse, opts.vectors.length && limit)
+        })
+        var stream = new Constructor(blocks, cursors, reverse, limit)
 
-          var cursors = vectors.map(function (v) {
-            return new Cursor(blocks, v, !!opts.reverse, opts.limit)
-          })
-          stream = new Constructor(blocks, cursors, !!opts.reverse, opts.limit)
-        }
-
-        if(opts.values)
+        if(!opts.values)
+          return stream
+        else
           return stream.pipe(new PushAsync(function (seq, cb) {
             log.get(seq, function (err, data) {
               if(err)            cb(err)
@@ -160,9 +141,6 @@ module.exports = function (version, hash, each) {
               else               cb(null, data)
             })
           }))
-        else
-          return stream
-
       }
     }
 
@@ -213,8 +191,8 @@ module.exports = function (version, hash, each) {
         })
       },
       intersects: createQuery(Intersect),
-      union: createQuery(Union, true),
-      difference: createQuery(Difference, true)
+      union: createQuery(Union),
+      difference: createQuery(Difference)
     }
   }
 }
