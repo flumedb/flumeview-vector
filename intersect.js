@@ -3,15 +3,8 @@ var CursorStream = require('./stream')
 
 var cmp = require('./cmp')
 
-function Intersect (blocks, cursors, reverse, limit) {
+function Intersect (blocks, cursors, reverse, limit, query) {
   this.cursors = cursors
-//  if(vectors.length === 1) {
-//    return new Cursor(blocks, vectors[0], reverse, limit)
-//  }
-//  this.cursors = vectors.map(function (v) {
-//    return new Cursor(blocks, v, reverse)
-//  })
-
   this.value = 0
   this.ended = false
   this.matched = false
@@ -19,18 +12,22 @@ function Intersect (blocks, cursors, reverse, limit) {
   CursorStream.call(this, limit)
   this._blocks = blocks
   this.max = this.reverse ? Infinity : 0
+  this.query = query
 }
 
 Intersect.prototype = new CursorStream()
 
 Intersect.prototype.ready = function () {
-  this.max = 0
+  this.max = 0 //this.reverse ? -Infinity : Infinity
   for(var i = 0; i < this.cursors.length; i++) {
-    if(!this.cursors[i].ready() /*|| this.cursors[i].isEnded()*/) return false
+    this.ended = this.ended || this.cursors[i].isEnded()
+    if(!this.cursors[i].ready()) {
+      return false
+    }
     var value = this.cursors[i].value
     this.max = cmp.lt(value, this.max, this.reverse) ? value : this.max
   }
-  return true
+  return !this.ended
 }
 
 Intersect.prototype.next = function () {
@@ -44,8 +41,10 @@ Intersect.prototype.next = function () {
     for(var i = 0; i < cursors.length; i++) {
       //TODO: skip forward, rather than just step forward.
       while(cmp.lt(cursors[i].value, max, this.reverse)) {
-        if(!cursors[i].ready()) return 0
+  //      this.ended = this.ended || cursors[i].isEnded()
         cursors[i].next()
+        this.ended = this.ended || cursors[i].isEnded()
+        if(!cursors[i].ready()) return 0
       }
 
       if(cmp.gt(cursors[i].value, max, this.reverse)) {
@@ -59,9 +58,10 @@ Intersect.prototype.next = function () {
   var value = cursors[0].value
   for(var i = 0; i < cursors.length; i++) {
     cursors[i].next()
+    this.ended = this.ended || cursors[i].isEnded()
   }
 
-  return value
+  return this.value = value
 }
 
 Intersect.prototype.update = function (cb) {

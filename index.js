@@ -191,7 +191,7 @@ module.exports = function (version, hash, each) {
             return new (
               ({AND: Intersect, OR: Union, DIFF: Difference})
                 [args[0]]
-            )(blocks, args.slice(1).map(evalQuery), reverse, top ? limit : null)
+            )(blocks, args.slice(1).map(evalQuery), reverse, top ? limit : null, args)
         })(opts.query, true)
         if(!opts.values) return stream
         else             return stream.pipe(Values(opts))

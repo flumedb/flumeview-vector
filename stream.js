@@ -1,4 +1,4 @@
-
+'use strict'
 function CursorStream(limit) {
   this.sink = null
   this._blocks = null
@@ -7,14 +7,17 @@ function CursorStream(limit) {
 }
 
 CursorStream.prototype.resume = function () {
+  var v = 0
   if(this._resuming) return //prevent re-entrancy
 
   var self = this
+  console.log(this.sink.paused, this.ready())
   if(this.sink.paused) return
 
   if(this.isEnded()) return this.sink.end()
-  if(!this.ready())  return this.update(this.resume.bind(this))
-
+  if(!this.ready())  {
+    return this.update(this.resume.bind(this))
+  }
   this._resuming = true
   while(!this.sink.paused && this.ready() && (v = this.next())) {
     if(this.limit > 0) this.limit --
@@ -26,12 +29,12 @@ CursorStream.prototype.resume = function () {
       return
     }
   }
-
   this._resuming = false
 
   if(this.isEnded()) this.sink.end()
-  else if(!this.ready())
+  else if(!this.ready() || v === 0) {
     this.update(this.resume.bind(this))
+  }
 }
 
 
