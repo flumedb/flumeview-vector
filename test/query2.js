@@ -165,8 +165,6 @@ function testMatch(opts) {
     t.deepEqual(a, _data, 'output is equal')
   }
 
-//  var length = 'string' === typeof query ? 1 : keys.length - 1
-
   tape('test matches:'+string, function (t) {
     var a = []
     var start = Date.now()
@@ -177,7 +175,7 @@ function testMatch(opts) {
     })
     .pipe({
       write: function (d) {
-        console.log(bipf.decode(d, 0))
+        //console.log(bipf.decode(d, 0))
         a.push(bipf.decode(d, 0))
       },
       end: function () {
@@ -192,19 +190,19 @@ function testMatch(opts) {
 
 }
 
-//testMatch({query:'.boolean:true'})
-//testMatch({query:['AND', '.boolean:true']})
-//testMatch({query:['OR', '.boolean:true']})
-//testMatch({query:['OR', '.boolean:true', '.fruit:durian']})
-//testMatch({query:['OR', '.fruit:cherry', '.fruit:durian']})
-//testMatch({query:['AND', '.boolean:true', '.fruit:durian']})
-//testMatch({query:['DIFF', '.fruit:durian', '.boolean:true']})
-//testMatch({query:['OR', '.boolean:true', '.fruit:durian']})
-//testMatch({query:['AND', '.boolean:true']})
-//testMatch({query:['AND', '.boolean:true', '.boolean:true']})
-//testMatch({query:['AND', ['AND', '.boolean:true'], ['AND', '.boolean:true']], limit: 5, reverse: true})
-//testMatch({query:['AND', ['AND', '.boolean:true'], ['AND', '.fruit:durian']], limit: 5, reverse: true})
-//testMatch({query:['OR', ['AND', '.boolean:true', '.letter:B'], '.fruit:durian']})
+testMatch({query:'.boolean:true'})
+testMatch({query:['AND', '.boolean:true']})
+testMatch({query:['OR', '.boolean:true']})
+testMatch({query:['OR', '.boolean:true', '.fruit:durian']})
+testMatch({query:['OR', '.fruit:cherry', '.fruit:durian']})
+testMatch({query:['AND', '.boolean:true', '.fruit:durian']})
+testMatch({query:['DIFF', '.fruit:durian', '.boolean:true']})
+testMatch({query:['OR', '.boolean:true', '.fruit:durian']})
+testMatch({query:['AND', '.boolean:true']})
+testMatch({query:['AND', '.boolean:true', '.boolean:true']})
+testMatch({query:['AND', ['AND', '.boolean:true'], ['AND', '.boolean:true']], limit: 5, reverse: true})
+testMatch({query:['AND', ['AND', '.boolean:true'], ['AND', '.fruit:durian']], limit: 5, reverse: true})
+testMatch({query:['OR', ['AND', '.boolean:true', '.letter:B'], '.fruit:durian']})
 testMatch({query:['AND', '.boolean:true', ['OR', '.fruit:cherry', '.fruit:durian']]})
 
 //testMatch({query:{boolean: true}})
