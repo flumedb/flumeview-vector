@@ -18,6 +18,7 @@ function Intersect (blocks, cursors, reverse, limit, query) {
 Intersect.prototype = new CursorStream()
 
 Intersect.prototype.ready = function () {
+//  if(this.ended) return false
   this.max = 0 //this.reverse ? -Infinity : Infinity
   for(var i = 0; i < this.cursors.length; i++) {
     this.ended = this.ended || this.cursors[i].isEnded()
@@ -27,13 +28,8 @@ Intersect.prototype.ready = function () {
     var value = this.cursors[i].value
     this.max = cmp.lt(value, this.max, this.reverse) ? value : this.max
   }
-  return !this.ended
-}
 
-Intersect.prototype.next = function () {
-  const cursors = this.cursors
-  if(!this.ready()) throw new Error('next called when not ready')
-  var max = this.max
+  var max = this.max, cursors = this.cursors
 
   var loop = true
   while(loop) {
@@ -41,7 +37,6 @@ Intersect.prototype.next = function () {
     for(var i = 0; i < cursors.length; i++) {
       //TODO: skip forward, rather than just step forward.
       while(cmp.lt(cursors[i].value, max, this.reverse)) {
-  //      this.ended = this.ended || cursors[i].isEnded()
         cursors[i].next()
         this.ended = this.ended || cursors[i].isEnded()
         if(!cursors[i].ready()) return 0
@@ -53,9 +48,36 @@ Intersect.prototype.next = function () {
         break;
       }
     }
+    this.value = max
   }
+  return !this.ended
+}
 
-  var value = cursors[0].value
+Intersect.prototype.next = function () {
+  const cursors = this.cursors
+  if(!this.ready()) throw new Error('next called when not ready')
+//  var max = this.max
+//
+//  var loop = true
+//  while(loop) {
+//    loop = false
+//    for(var i = 0; i < cursors.length; i++) {
+//      //TODO: skip forward, rather than just step forward.
+//      while(cmp.lt(cursors[i].value, max, this.reverse)) {
+//        cursors[i].next()
+//        this.ended = this.ended || cursors[i].isEnded()
+//        if(!cursors[i].ready()) return 0
+//      }
+//
+//      if(cmp.gt(cursors[i].value, max, this.reverse)) {
+//        max = cursors[i].value
+//        loop = true
+//        break;
+//      }
+//    }
+//  }
+
+  var value = this.value //cursors[0].value
   for(var i = 0; i < cursors.length; i++) {
     cursors[i].next()
     this.ended = this.ended || cursors[i].isEnded()

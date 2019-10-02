@@ -59,20 +59,20 @@ db.vec.since(function (v) {
     var C = 0, L = 0, _seq
     var start = Date.now(), ts = Date.now()
 
-      var int = db.vec.intersects({ vectors: ['.channel:solarpunk'] })
+      var int = db.vec.query({ query: '.channel:solarpunk' })
       .pipe({
         write: function (e) { C++ },
         end :function () {
           console.log('channel:solarpunk', C, Date.now() - start)
           C = 0
-          var int = db.vec.intersects({ vectors: ['.type:post'] })
+          var int = db.vec.query({ query: '.type:post' })
           .pipe({
             write: function (e) { C++ },
             end :function () {
               console.log('type:post', C, Date.now() - start)
               console.log(C, Date.now() - start)
               C = 0
-              var int = db.vec.intersects({ vectors: [
+              var int = db.vec.query({ query: ['AND',
                 '.type:post', '.channel:solarpunk'
               ], values: true})
               .pipe({
