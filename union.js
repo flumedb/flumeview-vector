@@ -27,11 +27,13 @@ Union.prototype.ready = function () {
   this.min = infinite
   for(var i = 0; i < this.cursors.length; i++) {
     var cursor = this.cursors[i]
+    cursor.ready() //this line makes it work...
     if(!cursor.isEnded()) {
       if(!cursor.ready()) return false
       this.min = cmp.lt(cursor.value, this.min, this.reverse) ? cursor.value : this.min
     }
   }
+
   if(this.min == infinite) {
     this.ended = true
     return false
@@ -57,7 +59,6 @@ Union.prototype.next = function () {
       }
     }
   }
-
   return this.value = min
 }
 
