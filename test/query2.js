@@ -19,7 +19,7 @@ var intersection = require('ordered-intersect/scan')
 
 var dir = '/tmp/test_flumeview-vector'
 rimraf.sync(dir)
-var N = 4000, data = []
+var N = 4150, data = []
 
 var mt = new RNG.MT(1)
 
@@ -151,7 +151,7 @@ function testMatch(opts) {
     var n = limit
     var _data = data.filter(function (value) {
         var v = fn(value)
-        if(v && n-- > 0) console.log(value, n)
+        //if(v && n-- > 0) console.log(value, n)
         return v
     })
     if(reverse) _data = _data.reverse()
@@ -160,8 +160,7 @@ function testMatch(opts) {
       console.log('length, limit', a.length, limit)
       t.ok(a.length <= limit, 'length less or equal to limit')
     }
-    else
-      t.equal(a.length, _data.length, 'has '+a.length + ' items, expected:'+_data.length)
+    t.equal(a.length, _data.length, 'has '+a.length + ' items, expected:'+_data.length)
     t.deepEqual(a, _data, 'output is equal')
   }
 
@@ -190,55 +189,34 @@ function testMatch(opts) {
 
 }
 
-testMatch({query:'.boolean:true'})
-testMatch({query:['AND', '.boolean:true']})
-testMatch({query:['OR', '.boolean:true']})
-testMatch({query:['OR', '.boolean:true', '.fruit:durian']})
-testMatch({query:['OR', '.fruit:cherry', '.fruit:durian']})
-testMatch({query:['AND', '.boolean:true', '.fruit:durian']})
-testMatch({query:['DIFF', '.fruit:durian', '.boolean:true']})
-testMatch({query:['OR', '.boolean:true', '.fruit:durian']})
-testMatch({query:['AND', '.boolean:true']})
-testMatch({query:['AND', '.boolean:true', '.boolean:true']})
-testMatch({query:['AND', ['AND', '.boolean:true'], ['AND', '.boolean:true']], limit: 5, reverse: true})
-testMatch({query:['AND', ['AND', '.boolean:true'], ['AND', '.fruit:durian']], limit: 5, reverse: true})
-testMatch({query:['OR', ['AND', '.boolean:true', '.letter:B'], '.fruit:durian']})
-testMatch({query:['AND', '.boolean:true', ['OR', '.fruit:cherry', '.fruit:durian']]})
 
-//testMatch({query:{boolean: true}})
-//testMatch({query: {fruit: 'durian'}})
-//testMatch({query: {fruit: 'cherry', boolean: false}})
-//testMatch({query: {fruit: 'apple', boolean: true}})
-//testMatch({query: {dog: 'Rufus', boolean: true}})
-//testMatch({query: {letter: 'ABC'}}) //empty
-//testMatch({query: {fruit: 'cherry', boolean: false, letter: 'A'}})
-//
-//testMatch({query: {boolean: true}, limit: 50})
-//testMatch({query: {fruit: 'durian'}, limit: 7})
-//
-//testMatch({query: {fruit: 'cherry', boolean: false}, limit: 5})
-//testMatch({query: {fruit: 'apple', boolean: true}, limit: 9})
-//testMatch({query: {dog: 'Rufus', boolean: true}, limit: 2})
-//testMatch({query: {letter: 'ABC'}, limit: 1})
-//testMatch({query: {fruit: 'cherry', boolean: false, letter: 'A'}, limit: 3})
-//
-//
-//testMatch({query: {boolean: true}, reverse: true})
-//testMatch({query: {fruit: 'durian'}, reverse: true})
-//testMatch({query: {fruit: 'cherry', boolean: false}, reverse: true})
-//testMatch({query: {fruit: 'apple', boolean: true}, reverse: true})
-//testMatch({query: {dog: 'Rufus', boolean: true}, reverse: true})
-//testMatch({query: {letter: 'ABC'}, reverse: true}) //empty
-//testMatch({query: {fruit: 'cherry', boolean: false, letter: 'A'}, reverse: true})
-//
-//testMatch({query: {boolean: true}, limit: 50, reverse: true})
-//testMatch({query: {fruit: 'durian'}, limit: 7, reverse: true})
-//
-//testMatch({query: {fruit: 'cherry', boolean: false}, limit: 5, reverse: true})
-//testMatch({query: {fruit: 'apple', boolean: true}, limit: 9, reverse: true})
-//testMatch({query: {dog: 'Rufus', boolean: true}, limit:2, reverse: true})
-//testMatch({query: {letter: 'ABC'}, limit:1, reverse:true}) //reverse doesn't matter if limit=1
-//testMatch({query: {fruit: 'cherry', boolean: false, letter: 'A'}, limit: 3, reverse: true})
-//
-//
-//
+var limits = [5, 10, 100, 1000, -1]
+for(var R = 0; R < 2; R++) {
+  for(var j = 0; j < limits.length; j++) {
+    function t(q) {
+      testMatch({query: q, reverse: !!R, limit: limits[j]})
+    }
+
+    t('.boolean:true')
+    t(['AND', '.boolean:true'])
+    t(['OR', '.boolean:true'])
+    t(['OR', '.boolean:true', '.fruit:durian'])
+    t(['OR', '.fruit:cherry', '.fruit:durian'])
+    t(['AND', '.boolean:true', '.fruit:durian'])
+    t(['DIFF', '.fruit:durian', '.boolean:true'])
+    t(['OR', '.boolean:true', '.fruit:durian'])
+    t(['AND', '.boolean:true'])
+    t(['AND', '.boolean:true', '.boolean:true'])
+    t(['AND', ['AND', '.dog:Rufus'], ['AND', '.fruit:durian']])
+    t(['AND', ['AND', '.dog:Rufus']])
+    t(['AND', ['AND', '.dog:Rufus', '.fruit:durian']])
+    t(['AND', ['AND', '.boolean:true'], ['AND', '.boolean:true']])
+    t(['AND', ['AND', '.boolean:true'], ['AND', '.fruit:durian']])
+    t(['AND', '.boolean:true', '.letter:B'])
+    t(['OR', ['OR', '.boolean:true', '.fruit:durian'], '.dog:Rufus'])
+    t(['OR', ['AND', '.boolean:true', '.letter:B'], '.fruit:durian'])
+    t(['AND', '.boolean:true', ['OR', '.fruit:cherry', '.fruit:durian']])
+    t(['OR',  ['OR', '.dog:Rufus'], '.fruit:cherry'])
+    t(['OR', ['OR', '.dog:Rufus', '.dog:Sally'], ['OR', '.fruit:cherry', '.fruit:durian']])
+  }
+}
