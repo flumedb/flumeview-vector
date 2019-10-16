@@ -115,6 +115,7 @@ module.exports = function (version, hash, each) {
       }
     }
 
+    //TODO: move into push-stream module
     function Empty () {
       return {
         resume: function () {
@@ -153,6 +154,7 @@ module.exports = function (version, hash, each) {
           pull.asyncMap(createMap(_each)),
           pull.drain(null, function (err) {
             updating = false
+            //note: don't update the index function until the update is complete.
             cb(err)
           })
         )
@@ -182,6 +184,7 @@ module.exports = function (version, hash, each) {
         })
       },
       query: function (opts) {
+        //TODO: if the query uses an non-existing index, index it.
         var reverse = !!opts.reverse, limit = opts.limit
         var stream = (function evalQuery(args, top) {
           top = top === true
@@ -189,8 +192,7 @@ module.exports = function (version, hash, each) {
             return new Cursor(blocks, ht.get(hash(args)), reverse, top ? limit : null)
           else
             return new (
-              ({AND: Intersect, OR: Union, DIFF: Difference})
-                [args[0]]
+              ({AND: Intersect, OR: Union, DIFF: Difference})[args[0]]
             )(blocks, args.slice(1).map(evalQuery), reverse, top ? limit : null, args)
         })(opts.query, true)
         if(!opts.values) return stream
