@@ -85,8 +85,8 @@ function testQuery(name, n) {
   tape('query ' + name +'('+n+'):', function (t) {
     var zero = true
     var key = name[0].toUpperCase()+n.toString(36)
-    db.vec.intersects({
-      vectors: [key], values: true
+    db.vec.query({
+      query: key, values: true
     })
     .pipe({
       write: function (data) {
@@ -108,8 +108,8 @@ for(var i = 0; i < Q; i++)
 
 tape('apply update', function (t) {
   db.vec.update(addBar, function () {
-    t.end()
     addFn = addFooBar
+    t.end()
   })
 })
 
