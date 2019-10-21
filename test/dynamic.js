@@ -1,3 +1,19 @@
+var Flume    = require('flumedb')
+var tape     = require('tape')
+var crypto   = require('crypto')
+var Log      = require('flumelog-aligned-offset')
+var toCompat = require('flumelog-aligned-offset/compat')
+var path     = require('path')
+var rimraf   = require('rimraf')
+var bipf     = require('bipf')
+var pull     = require('pull-stream')
+var RNG      = require('rng')
+var nested   = require('libnested')
+
+function isObject(o) {
+  return 'object' === typeof o
+}
+
 function randomLength(max) {
   return ~~(Math.pow(Math.random(), 4)*max) + 1
 }
@@ -21,20 +37,15 @@ function randomObject(keys, keyLength, valueLength, nestedProb) {
   return o
 }
 
-var Flume    = require('flumedb')
-var tape     = require('tape')
-var crypto   = require('crypto')
-var Log      = require('flumelog-aligned-offset')
-var toCompat = require('flumelog-aligned-offset/compat')
-var path     = require('path')
-var rimraf   = require('rimraf')
-var bipf     = require('bipf')
-var pull     = require('pull-stream')
-var RNG      = require('rng')
+function randomPath (o) {
+  var keys = Object.keys(o)
+  var k = keys[~~(Math.random()*keys.length)]
+  return !isObject(o[k]) ? [k] : [k].concat(randomPath(o[k]))
+}
 
 var dir = '/tmp/test_flumeview-vector_dynamic'
 rimraf.sync(dir)
-var N = 100000, data = []
+var N = 1000, data = []
 
 var mt = new RNG.MT(1)
 
@@ -50,8 +61,13 @@ var Dynamic = require('../examples/dynamic')
 var start = Date.now()
 var db = Flume(log).use('dyn', Dynamic())
 
+console.log('elapsed, written, processed')
 var int = setInterval(function () {
-  console.log(Date.now() - start, db.since.value, db.vec && db.vec.since.value, db.count && db.count.since.value)
+  var time = (Date.now() - start)/1000
+  var M = 1024*1024
+  var since = db.since.value/M
+  var view_since = db.dyn && db.dyn.since.value/M
+  console.log(time, since, view_since, since/time, view_since/time)
 }, 500)
 int.unref()
 
@@ -76,29 +92,28 @@ tape('setup', function (t) {
 
 
   function done () {
-    start = Date.now()
-
     db.dyn.since(function (v) {
       if(v !== db.since.value) return
+      clearInterval(int)
       t.end()
     })
   }
 })
 
-for(var i = 0; i < 10; i++)
+for(var i = 0; i < 10; i++) {
   tape('random query', function (t) {
-    var o = a[~~(Math.random()*a.length)]
-    var k = Object.keys(o).filter(function (k) {
-      return 'string' === typeof o[k]
-    })[0], i = 0
+    var k, o
+  //  do {
+      var o = a[~~(Math.random()*a.length)]
+      k = randomPath(o)
+//    } while('string' !== typeof k);
 
-    if(!k) return t.end()
     function Query(cb) {
       var start = Date.now(), n = 0
       console.log('query:', k, o[k])
       var out = []
       db.dyn
-        .query({query: '.' + k + ':' + o[k], values: true})
+        .query({query: '.' + k.join('.') + ':' + nested.get(o, k), values: true})
         .pipe({
           write: function (b) {
             n++
@@ -118,3 +133,4 @@ for(var i = 0; i < 10; i++)
     }
     Query(function () { Query(t.end) })
   })
+}
