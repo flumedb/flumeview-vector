@@ -58,7 +58,7 @@ module.exports = function () {
             recurse(q[i])
         }
         else {
-          var prefix = /^((?:\.[\w-]+)+)(!|\:[\w-]+)/.exec(q)
+          var prefix = /^((?:\.[\w-]+)+)(!|\:.+)/.exec(q)
           //check if this term is indexed, or currently being added to index
           if(prefix && !optimistic_indexed[prefix[1]]) {
             toIndex[prefix[1]] = toIndex[prefix[1]] | (prefix[2][0] == ':' ? STRING : IS_DEFINED)
