@@ -1,11 +1,35 @@
 var FlumeViewVector = require('..')
 var hash = require('string-hash')
 var bipf = require('bipf')
+var AtomicFile = require('atomic-file')
+var path = require('path')
+var pull = require('pull-stream')
 const IS_DEFINED = 1, STRING = 2, OBJECT = 4
 
 function isEmpty (o) {
   for(var k in o) return false
   return true
+}
+
+function Through () {
+  return {
+    paused: true,
+    write: function (d) {
+      this.sink.write(d)
+    },
+    end: function (err) {
+      this.sink.end(err)
+    },
+    resume: function () {
+      this.paused = false
+      if(this.source) this.source.resume()
+    },
+    pipe: function (sink) {
+      this.sink = sink
+      if(this.source) this.resume()
+    }
+  }
+
 }
 
 function createIndexer (indexed) {
@@ -36,9 +60,12 @@ function createIndexer (indexed) {
 
 module.exports = function () {
   return function (log, name) {
-    var indexed = {}, optimistic_indexed = {}
+    var indexed, optimistic_indexed = {}
+    var af = AtomicFile(path.join(path.dirname(log.filename), name, 'indexed.json'))
     var vectors = FlumeViewVector(1, hash, createIndexer(indexed))(log, name)
-
+    af.get(function (err, _indexed) {
+      indexed = _indexed || {}
+    })
     var updating = false
 
     function isEmpty (o) {
@@ -79,29 +106,14 @@ module.exports = function () {
             optimistic_indexed[k] =  toIndex[k]
       }
 
-      var through = {
-        paused: true,
-        write: function (d) {
-          this.sink.write(d)
-        },
-        end: function (err) {
-          this.sink.end(err)
-        },
-        resume: function () {
-          this.paused = false
-          if(this.source) this.source.resume()
-        },
-        pipe: function (sink) {
-          this.sink = sink
-          if(this.source) this.resume()
-        }
-      }
+      var through = Through()
 
       vectors.update(createIndexer(toIndex), function () {
         for(var k in toIndex)
           indexed[k] = indexed[k] | toIndex[k]
         vectors.query(opts).pipe(through)
         if(through.sink) through.resume()
+        af.set(indexed, function () {})
       })
       return through
     }
@@ -109,9 +121,30 @@ module.exports = function () {
       methods: {
         query: 'sync'
       },
-      createSink: vectors.createSink,
+      createSink: function (cb) {
+        return function (read) {
+          console.log("READ:", read)
+          af.get(function () {
+            pull(read, vectors.createSink(cb))
+          })
+        }
+      },
       since: vectors.since,
-      query: query
+      query: function (opts) {
+        if(indexed) {
+          this.query = query
+          return query(opts)
+        }
+        else {
+          console.log("DEFER")
+          var th = Through()
+          af.get(function () {
+            query(opts).pipe(th)
+            if(th.sink) th.resume()
+          })
+          return th
+        }
+      }
     }
   }
 }
