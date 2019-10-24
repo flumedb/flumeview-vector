@@ -22,6 +22,7 @@ function EmptyCursor () {
     pipe: function (dest) {
       this.sink = dest
       if(!dest.paused) dest.end()
+      return dest
     },
     ready: function () { return false },
     isEnded: function () { return true },
