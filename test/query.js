@@ -9,19 +9,13 @@ var hash     = require('string-hash')
 var Reduce   = require('flumeview-reduce')
 var bipf     = require('bipf')
 var pull     = require('pull-stream')
-var RNG      = require('rng')
-
-//var Values   = require('../../push-stream/sources/values')
-//var Collect  = require('../../push-stream/sinks/collect')
-//var AsyncMap = require('../../push-stream/throughs/async-map')
+var u        = require('./util')
 
 var intersection = require('ordered-intersect/scan')
 
 var dir = '/tmp/test_flumeview-vector'
 rimraf.sync(dir)
-var N = 4000, data = []
-
-var mt = new RNG.MT(1)
+var N = 4000, data
 
 var log = toCompat(Log(path.join(dir, 'log.aligned'), {
   //use bipf format, so no codec needed.
@@ -42,51 +36,10 @@ function addEverything (buf, seq, add) {
   })
 }
 
-var dogs = require('dog-names').all
-var fruit = ['apple', 'banana', 'cherry', 'durian', 'elderberry']
-var letters = 'abcdefghijklmnopqrstuvwxyz'.toUpperCase()
-
-function random () {
-  var value = {
-    boolean: mt.random() > 0.5,
-    dog: dogs[~~(dogs.length*mt.random())],
-    fruit: fruit[~~(mt.random()*fruit.length)],
-    letter: letters[~~(mt.random()*letters.length)],
-  }
-  data.push(value)
-  var b = Buffer.alloc(bipf.encodingLength(value))
-  bipf.encode(value, b)
-  return b
-}
-
 var db = Flume(log)
   .use('vec', FlumeViewVector(1, hash, addEverything))
 
-var int = setInterval(function () {
-  console.log(Date.now() - start, db.since.value, db.vec && db.vec.since.value, db.count && db.count.since.value)
-}, 500)
-int.unref()
-
-tape('setup', function (t) {
-
-  ;(function next (n) {
-    if(n == N) return done()
-    db.append(random(), function () {
-      if(n % 1000) next(n+1)
-      else setImmediate(function () { next(n+1) })
-    })
-  })(0)
-
-
-  function done () {
-    start = Date.now()
-
-    db.vec.since(function (v) {
-      if(v !== db.since.value) return
-      t.end()
-    })
-  }
-})
+var data = u.setup(tape, db, u.randomDogFruit, N)
 
 tape('test dump', function (t) {
   pull(
@@ -115,116 +68,21 @@ function testMatch(opts) {
   var query = opts.query, limit = opts.limit, reverse = opts.reverse
   limit = limit || -1
   var string = JSON.stringify({query: query, limit: limit == -1 ? undefined : limit, reverse:reverse || undefined})
-
-  function assertQueryAnd(t, a, data, query) {
-    assertQuery(t, a, data, query, function (e) {
-      for(var k in query) if(e[k] !== query[k]) return false
-      return true
-    })
-  }
-
-  function assertQueryOr(t, a, data, query, reverse) {
-    assertQuery(t, a, data, query, function (e) {
-      for(var k in query) if(e[k] === query[k]) return true
-      return false
-    })
-  }
-
-  function assertQueryAndNot(t, a, data, query) {
-    assertQuery(t, a, data, query, function (e) {
-      var first = 0
-      for(var k in query) {
-        if(first++) {
-          if(e[k] === query[k]) return false
-        }
-        else if(e[k] !== query[k]) return false
-      }
-      return true
-    })
-  }
-
-  function assertQuery(t, a, data, query, fn) {
-    var n = limit
-    var _data = data.filter(function (value) {
-        var v = fn(value)
-        if(v && n-- > 0) console.log(value, n)
-        return v
-    })
-    if(reverse) _data = _data.reverse()
-    _data = _data.slice(0, limit === -1 ? _data.length : limit)
-    if(limit > -1) {
-      console.log('length, limit', a.length, limit)
-      t.ok(a.length <= limit, 'length less or equal to limit')
-    }
-    else
-      t.equal(a.length, _data.length, 'has '+a.length + ' items, expected:'+_data.length)
-    t.deepEqual(a, _data, 'output is equal')
-  }
-
   var keys = Object.keys(query).map(function (k) { return '.'+k+':'+query[k] })
   var length = keys.length
 
-  tape('test matches:'+string, function (t) {
-    var a = []
-    var start = Date.now()
-    db.vec.query({
-      query: ['AND'].concat(keys),
-      values: true,
-      limit: limit, reverse: reverse
-    })
-    .pipe({
-      write: function (d) {
-        a.push(bipf.decode(d, 0))
-      },
-      end: function () {
-        var time = Date.now() - start
-        console.log(time, a.length, a.length/time)
-        assertQueryAnd(t, a, data, query)
-        t.end()
-      }
-    })
+  u.test(tape, db.vec, data, {
+    query: ['AND'].concat(keys), reverse: reverse, limit: limit
   })
-
-
-  if(length >= 2) {
-    tape('test union:'+string, function (t) {
-      var a = []
-      db.vec.query({
-        query: ['OR'].concat(keys), values: true, limit: limit, reverse: reverse
-      })
-      .pipe({
-        write: function (d) {
-          a.push(bipf.decode(d, 0))
-        },
-        end: function () {
-          var time = Date.now() - start
-          console.log('query time:', time, a.length, a.length/time)
-          assertQueryOr(t, a, data, query)
-          t.end()
-        }
-      })
+  if(length >= 2)
+    u.test(tape, db.vec, data, {
+      query: ['OR'].concat(keys), reverse: reverse, limit: limit
     })
-  }
-
-  if(length === 2)
-    tape('test difference:'+string, function (t) {
-      var a = []
-      db.vec.query({
-        keys: true,
-        query: ['DIFF'].concat(keys), values: true, limit: limit, reverse: reverse
-      })
-      .pipe({
-        write: function (d) {
-          a.push(bipf.decode(d.value, 0))
-        },
-        end: function () {
-          var time = Date.now() - start
-          console.log('query time:', time, a.length, a.length/time)
-          assertQueryAndNot(t, a, data, query)
-          t.end()
-        }
-      })
+  if(length == 2)
+    u.test(tape, db.vec, data, {
+      query: ['DIFF'].concat(keys), reverse: reverse, limit: limit
     })
+
 }
 
 testMatch({query:{boolean: true}})
