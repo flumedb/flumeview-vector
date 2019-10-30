@@ -1,4 +1,5 @@
 'use strict'
+
 var path        = require('path')
 var mkdirp      = require('mkdirp')
 var Obv         = require('obv')
@@ -115,20 +116,7 @@ module.exports = function (version, hash, each) {
       }
     }
 
-    //TODO: move into push-stream module
-    function Empty () {
-      return {
-        resume: function () {
-          this.sink.end()
-        },
-        pipe: function (dest) {
-          this.sink = dest
-          if(!dest.paused) dest.end()
-        }
-      }
-    }
-
-    function Values (opts) {
+    function Lookup (opts) {
       return new PushAsync(function (seq, cb) {
         log.get(seq, function (err, data) {
           if(err)            cb(err)
@@ -195,8 +183,9 @@ module.exports = function (version, hash, each) {
               ({AND: Intersect, OR: Union, DIFF: Difference})[args[0]]
             )(blocks, args.slice(1).map(evalQuery), reverse, top ? limit : null, args)
         })(opts.query, true)
+
         if(!opts.values) return stream
-        else             return stream.pipe(Values(opts))
+        else             return stream.pipe(Lookup(opts))
       }
     }
   }

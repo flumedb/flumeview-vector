@@ -2,7 +2,7 @@ module.exports = Cursor
 
 var CursorStream = require('./stream')
 var Format = require('./format')
-
+var Empty = require('push-stream/sources/empty')
 /*
   cursor which iterates over a vector.
   it doesn't do any async.
@@ -14,22 +14,12 @@ var Format = require('./format')
 //so since flumelog offset can be zero, use value - 1 to get real value.
 //and when storing +1
 
-function EmptyCursor () {
-  return {
-    resume: function () {
-      this.sink.end()
-    },
-    pipe: function (dest) {
-      this.sink = dest
-      if(!dest.paused) dest.end()
-      return dest
-    },
-    ready: function () { return false },
-    isEnded: function () { return true },
-    update: function (cb) { cb() }
-  }
-}
-
+function EmptyCursor () {}
+EmptyCursor.prototype = new Empty()
+EmptyCursor.prototype.ended = true
+EmptyCursor.prototype.ready = function () { return true }
+EmptyCursor.prototype.isEnded = function () { return true },
+EmptyCursor.prototype.update = function (cb) { cb() }
 
 function Cursor(blocks, vector, reverse, limit) {
   if(vector == 0)
