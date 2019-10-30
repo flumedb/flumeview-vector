@@ -20,7 +20,7 @@ function randomString (max) {
   return (1+~~(mt.random()*(Math.pow(36, length)))).toString(36)
 }
 
-exports.randomObject = function (keys, keyLength, valueLength, nestedProb) {
+var randomObject = exports.randomObject = function (keys, keyLength, valueLength, nestedProb) {
   keys = keys || ~~randomLength(10)
   var o = {}
   for(var i = 0; i < keys; i++) {
@@ -103,8 +103,10 @@ exports.test = function (tape, vectors, data, opts) {
   var limit = opts.limit || -1
   tape('test:'+JSON.stringify(opts), function (t) {
     var a = []
+    var start = Date.now()
     opts.values = true
     opts.keys = false
+
     vectors.query(opts)
     .pipe({
       write: function (d) {
@@ -133,9 +135,12 @@ exports.test = function (tape, vectors, data, opts) {
 }
 
 
-exports.setup = function (tape, db, fn, N) {
+exports.setup = function (tape, db, vectors, fn, N) {
   var data = []
 
+  for(var i = 0; i < N; i++)
+    data.push((fn  || exports.randomDogFruit)())
+  var start = Date.now()
   var int = setInterval(function () {
     console.log(Date.now() - start, db.since.value, db.vec && db.vec.since.value, db.count && db.count.since.value)
   }, 500)
@@ -146,9 +151,7 @@ exports.setup = function (tape, db, fn, N) {
 
     ;(function next (n) {
       if(n == N) return done()
-      var d = (fn  || exports.randomDogFruit)()
-      data.push(d)
-      db.append(exports.encode(d), function () {
+      db.append(exports.encode(data[n]), function () {
         if(n % 1000) next(n+1)
         else setImmediate(function () { next(n+1) })
       })
@@ -158,7 +161,7 @@ exports.setup = function (tape, db, fn, N) {
     function done () {
       start = Date.now()
 
-      db.vec.since(function (v) {
+      vectors.since(function (v) {
         if(v !== db.since.value) return
         clearInterval(int)
         t.end()
@@ -166,6 +169,11 @@ exports.setup = function (tape, db, fn, N) {
     }
   })
 
-  return data
+  function test (opts) {
+    exports.test(tape, vectors, data, opts)
+  }
 
+  test.data = data
+
+  return test
 }

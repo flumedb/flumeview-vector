@@ -39,31 +39,16 @@ function addEverything (buf, seq, add) {
 var db = Flume(log)
   .use('vec', FlumeViewVector(1, hash, addEverything))
 
-var data = u.setup(tape, db, u.randomDogFruit, N)
+var test = u.setup(tape, db, db.vec, u.randomDogFruit, N)
 
-tape('test dump', function (t) {
-  pull(
-    db.stream({values: true, seqs: false}),
-    pull.map(function (d) {
-      return bipf.decode(d, 0)
-    }),
-    pull.collect(function (err, ary) {
-      t.deepEqual(ary, data)
-      t.equal(ary.length, data.length)
-      t.ok(ary.length)
-      t.end()
-    })
-  )
-})
-
-function Filter(query) {
-  return function (e) {
-    for(var k in query)
-      if(e[k] !== query[k]) return false
-    return true
-  }
-}
-
+//function Filter(query) {
+//  return function (e) {
+//    for(var k in query)
+//      if(e[k] !== query[k]) return false
+//    return true
+//  }
+//}
+//
 function testMatch(opts) {
   var query = opts.query, limit = opts.limit, reverse = opts.reverse
   limit = limit || -1
@@ -71,15 +56,15 @@ function testMatch(opts) {
   var keys = Object.keys(query).map(function (k) { return '.'+k+':'+query[k] })
   var length = keys.length
 
-  u.test(tape, db.vec, data, {
+  test({
     query: ['AND'].concat(keys), reverse: reverse, limit: limit
   })
   if(length >= 2)
-    u.test(tape, db.vec, data, {
+    test({
       query: ['OR'].concat(keys), reverse: reverse, limit: limit
     })
   if(length == 2)
-    u.test(tape, db.vec, data, {
+    test({
       query: ['DIFF'].concat(keys), reverse: reverse, limit: limit
     })
 

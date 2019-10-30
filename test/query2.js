@@ -38,27 +38,12 @@ function addEverything (buf, seq, add) {
 var db = Flume(log)
   .use('vec', FlumeViewVector(1, hash, addEverything))
 
-var data = u.setup(tape, db, u.randomDogFruit, N)
-tape('test dump', function (t) {
-  pull(
-    db.stream({values: true, seqs: false}),
-    pull.map(function (d) {
-      return bipf.decode(d, 0)
-    }),
-    pull.collect(function (err, ary) {
-      t.deepEqual(ary, data)
-      t.equal(ary.length, data.length)
-      t.ok(ary.length)
-      t.end()
-    })
-  )
-})
-
+var test = u.setup(tape, db, db.vec, u.randomDogFruit, N)
 var limits = [5, 10, 100, 1000, -1]
 for(var R = 0; R < 2; R++) {
   for(var j = 0; j < limits.length; j++) {
     function t(q) {
-      u.test(tape, db.vec, data, {query: q, reverse: !!R, limit: limits[j]})
+      test({query: q, reverse: !!R, limit: limits[j]})
     }
 
     t('.boolean:true')

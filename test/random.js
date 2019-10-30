@@ -7,21 +7,19 @@ var path     = require('path')
 var rimraf   = require('rimraf')
 var bipf     = require('bipf')
 var pull     = require('pull-stream')
+var RNG      = require('rng')
 var nested   = require('libnested')
-var u        = require('./util')
-
-//TODO: test .a.b:c and then .a:b
-//TODO: retest something with the same key but a different value.
-//TODO: test false queries that shouldn't match anything
 
 function isObject(o) {
   return 'object' === typeof o
 }
 
-
-var dir = '/tmp/test_flumeview-vector_dynamic'
+var u = require('./util')
+var dir = '/tmp/test_flumeview-vector_random'
 rimraf.sync(dir)
-var N = 100, data = []
+var N = 10000, data = []
+
+var mt = new RNG.MT(1)
 
 var a = []
 
@@ -36,7 +34,6 @@ var start = Date.now()
 var db = Flume(log).use('dyn', Dynamic())
 
 console.log('elapsed, written, processed')
-
 var int = setInterval(function () {
   var time = (Date.now() - start)/1000
   var M = 1024*1024
@@ -46,8 +43,33 @@ var int = setInterval(function () {
 }, 500)
 int.unref()
 
-var test = u.setup(tape, db, db.dyn, u.randomDogFruitNested, N)
+function encode (obj) {
+  var l = bipf.encodingLength(obj)
+  var b = Buffer.alloc(l)
+  bipf.encode(obj, b, 0)
+  return b
+}
 
-test({
-  query: '.dog:Rufus'
-})
+function random () {
+  return u.randomObject(7, 5, 5, 0.5)
+}
+
+var test = u.setup(tape, db, db.dyn, random, N)
+
+
+//TODO: test .a.b:c and then .a:b
+//TODO: retest something with the same key but a different value.
+//TODO: test false queries that shouldn't match anything
+
+for(var i = 0; i < 10; i++) {
+//  tape('random query', function (t) {
+    var o = u.randomItem(test.data)
+    console.log(test.data, o)
+    var k = u.randomPath(o)
+
+    var str = '.' + k.join('.') + ':' + nested.get(o, k)
+    test({query: str})
+//    test({query: str})
+
+  //})
+}
