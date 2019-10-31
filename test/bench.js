@@ -18,29 +18,15 @@ var log = toCompat(Log(
   block: 64*1024, //codec: require('flumecodec').json
 }))
 
-var FlumeViewVector = require('../')
+var FlumeViewVector = require('../examples/dynamic')
 
 var _value = Buffer.from('value')
 var _content = Buffer.from('content')
 
 var start = Date.now()
-function addEverything (buf, seq, add) {
-  var p
-  p = bipf.seekKey(buf, 0, _value)
-  if(~p) {
-    p = bipf.seekKey(buf, p, _content)
-    if(~p)
-      bipf.iterate(buf, p, function (_, _value, _key) {
-        if(bipf.getEncodedType(buf, _value) == bipf.types.string && bipf.getEncodedLength(buf, _value) < 100) {
-          var __key = '.'+bipf.decode(buf, _key) + ':' + bipf.decode(buf, _value)
-          add(__key)
-        }
-      })
-  }
-}
 
 var db = Flume(log)
-  .use('vec', FlumeViewVector(1, hash, addEverything))
+  .use('vec', FlumeViewVector())
 
 var int = setInterval(function () {
   console.log(Date.now() - start, db.since.value, db.vec && db.vec.since.value, db.count && db.count.since.value)
@@ -55,31 +41,36 @@ function done () {
 db.vec.since(function (v) {
   if(v !== db.since.value) return
   clearInterval(int)
+  console.log('items, seconds, item/second')
   setImmediate(function () {
     var C = 0, L = 0, _seq
     var start = Date.now(), ts = Date.now()
 
-      var int = db.vec.query({ query: '.channel:solarpunk' })
+      var int = db.vec.query({ query: '.value.content.channel:solarpunk' })
       .pipe({
         write: function (e) { C++ },
         end :function () {
-          console.log('channel:solarpunk', C, Date.now() - start)
+          var time = (Date.now() - start) / 1000
+          console.log('channel:solarpunk\n' + [C, time, C / time].join(', '))
           C = 0
-          var int = db.vec.query({ query: '.type:post' })
+          var int = db.vec.query({ query: '.value.content.type:post' })
           .pipe({
             write: function (e) { C++ },
             end :function () {
-              console.log('type:post', C, Date.now() - start)
-              console.log(C, Date.now() - start)
+              var time = (Date.now() - start) / 1000
+              console.log('type:post\n' + [C, time, C / time].join(', '))
               C = 0
               var int = db.vec.query({ query: ['AND',
-                '.type:post', '.channel:solarpunk'
-              ], values: true})
+                '.value.content.type:post', '.value.content.channel:solarpunk'
+              ], values: true, reverse: true, limit: 10})
               .pipe({
-                write: function (e) { C++ },
+                write: function (e) { C++; /*console.log(bipf.decode(e, 0))*/ },
                 end :function () {
-                  console.log('type:post,channel:solarpunk', C, Date.now() - start)
+                  console.log("END")
+                  var time = (Date.now() - start) / 1000
+                  console.log('type:post,channel:solarpunk, values\n' + [C, time, C / time].join(', '))
                   console.log(C, Date.now() - start)
+                  setTimeout(function () {}, 1000)
                 }
               })
             }
@@ -87,4 +78,8 @@ db.vec.since(function (v) {
         }
       })
   })
+})
+
+process.on('exit', function () {
+  console.log(process.memoryUsage())
 })
