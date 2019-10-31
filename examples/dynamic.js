@@ -4,36 +4,34 @@ var bipf = require('bipf')
 var AtomicFile = require('atomic-file')
 var path = require('path')
 var pull = require('pull-stream')
+var Through = require('push-stream/throughs/through')
 const IS_DEFINED = 1, STRING = 2, OBJECT = 4
+
+function pushCont (cont) {
+  var stream
+  cont(function (err, _stream) {
+    if(err) _stream = new Empty(err)
+
+    if(!stream) stream = _stream
+    else _stream.pipe(stream).resume()
+  })
+  return stream = stream || new Through()
+}
 
 function isEmpty (o) {
   for(var k in o) return false
   return true
 }
 
-function Through () {
-  return {
-    paused: true,
-    write: function (d) {
-      this.sink.write(d)
-    },
-    end: function (err) {
-      this.sink.end(err)
-    },
-    resume: function () {
-      this.paused = false
-      if(this.source) this.source.resume()
-    },
-    pipe: function (sink) {
-      this.sink = sink
-      if(this.source) this.resume()
-    }
-  }
-
+//TODO: because we use a hash table, sometimes two indexes can collide.
+//to save storing the keys on the many many indexes, we can just check the output
+//it can also be used for bruteforce scans of the raw log.
+function createFilter(query) {
+  return function (buffer, start) {}
 }
 
 function createIndexer (indexed) {
-  return function addEverything (buf, seq, add) {
+  return function (buf, seq, add) {
     if(isEmpty(indexed)) return
 
     ;(function recurse (p, path) {
@@ -87,7 +85,7 @@ module.exports = function () {
         else {
           var prefix = /^((?:\.[\w-]+)+)(!|\:.+)/.exec(q)
           //check if this term is indexed, or currently being added to index
-          if(prefix && !optimistic_indexed[prefix[1]]) {
+          if(prefix && !(STRING & (indexed[prefix[1]] | optimistic_indexed[prefix[1]]))) {
             toIndex[prefix[1]] = toIndex[prefix[1]] | (prefix[2][0] == ':' ? STRING : IS_DEFINED)
             var s = ''
             prefix[1].split(/\./).slice(1).forEach(function (e, _, a) {
@@ -106,16 +104,17 @@ module.exports = function () {
             optimistic_indexed[k] =  toIndex[k]
       }
 
-      var through = Through()
-
-      vectors.update(createIndexer(toIndex), function () {
-        for(var k in toIndex)
-          indexed[k] = indexed[k] | toIndex[k]
-        vectors.query(opts).pipe(through)
-        if(through.sink) through.resume()
-        af.set(indexed, function () {})
+      return pushCont(function (cb) {
+        vectors.update(createIndexer(toIndex), function () {
+          for(var k in toIndex) {
+            indexed[k] = indexed[k] | toIndex[k]
+  //          delete optimistic_indexed[k]
+          }
+          //vectors.query(opts).pipe(through).resume()
+          af.set(indexed, function () {})
+          cb(null, vectors.query(opts))
+        })
       })
-      return through
     }
     return {
       methods: {
@@ -123,7 +122,6 @@ module.exports = function () {
       },
       createSink: function (cb) {
         return function (read) {
-          console.log("READ:", read)
           af.get(function () {
             pull(read, vectors.createSink(cb))
           })
@@ -136,13 +134,11 @@ module.exports = function () {
           return query(opts)
         }
         else {
-          console.log("DEFER")
-          var th = Through()
-          af.get(function () {
-            query(opts).pipe(th)
-            if(th.sink) th.resume()
+          return pushCont(function (cb) {
+            af.get(function () {
+              cb(null, query(opts))
+            })
           })
-          return th
         }
       }
     }

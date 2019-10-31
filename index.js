@@ -6,7 +6,7 @@ var Obv         = require('obv')
 var pull        = require('pull-stream')
 var AtomicFile  = require('atomic-file/buffer')
 var PRAF        = require('polyraf')
-var PushAsync   = require('push-stream/async')
+var PushAsync   = require('push-stream/throughs/async')
 var AsyncSingle = require('async-single')
 
 var HashTable   = require('./hashtable')
