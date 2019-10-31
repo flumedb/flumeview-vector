@@ -52,7 +52,7 @@ var randomDogFruit = exports.randomDogFruit = function () {
   }
 }
 
-function randomDogFruitNested () {
+exports.randomDogFruitNested = function () {
   var sub = randomDogFruit()
   return {
     content: sub,
@@ -114,13 +114,12 @@ exports.test = function (tape, vectors, data, opts) {
       },
       end: function () {
         var time = Date.now() - start
-        console.log(time, a.length, a.length/time)
+        console.log('time, items, items/time\n' + [time, a.length, a.length/time].join(', '))
 
         var _data = data.filter(exports.createQuery(opts.query))
         if(opts.reverse) _data = _data.reverse()
         _data = _data.slice(0, limit === -1 ? _data.length : limit)
         if(limit > -1) {
-          console.log('length, limit', a.length, limit)
           t.ok(a.length <= limit, 'length less or equal to limit')
         }
         else

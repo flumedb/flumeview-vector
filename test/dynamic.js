@@ -21,7 +21,7 @@ function isObject(o) {
 
 var dir = '/tmp/test_flumeview-vector_dynamic'
 rimraf.sync(dir)
-var N = 100, data = []
+var N = 10000, data = []
 
 var a = []
 
@@ -47,7 +47,25 @@ var int = setInterval(function () {
 int.unref()
 
 var test = u.setup(tape, db, db.dyn, u.randomDogFruitNested, N)
-
 test({
-  query: '.dog:Rufus'
+  query: '.content.fruit:apple'
+})
+;[-1, 10, 100].forEach(function (limit) {
+  for(var reverse = 0; reverse < 2; reverse ++) {
+    function t(q) { test({query: q, reverse: !!reverse, limit: limit}) }
+
+    t('.nest.dog:Mimi')
+    t('.nest:Mac')
+    t('.nest:Bandit')
+    t('.nest.dog:Rex')
+    t(['AND', '.content.letter:A', '.content.fruit:durian'])
+    t(['AND', '.content.letter:B', '.content.fruit:cherry'])
+    t(['OR', '.content.dog:Alex', '.content.letter:A', '.content.fruit:apple'])
+    t(['DIFF', '.content.letter:B', '.content.fruit:banana'])
+
+    //test non existing key
+    test({query: '.foo.bar:BAZ', reverse: !!reverse})
+    //test non existing value
+    test({query: '.content.dog:VADER', reverse: !!reverse})
+  }
 })
