@@ -50,7 +50,7 @@ var test = u.setup(tape, db, db.dyn, u.randomDogFruitNested, N)
 test({
   query: '.content.fruit:apple'
 })
-;[-1, 10, 100].forEach(function (limit) {
+;[-1, 1, 10, 100].forEach(function (limit) {
   for(var reverse = 0; reverse < 2; reverse ++) {
     function t(q) { test({query: q, reverse: !!reverse, limit: limit}) }
 
