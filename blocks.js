@@ -97,7 +97,7 @@ module.exports = function (raf, block_size, magic_number) {
       else if('function' === typeof blocks[i])
         blocks[i] = [blocks[i], cb]
       else {
-        if(i >= blocks.length) throw new Error('read beyond length:'+i)
+//        if(i >= blocks.length) throw new Error('read beyond length:'+i)
         blocks[i] = cb
         raf.read(block_size*i, block_size, function (err, block) {
           if(err) throw err
