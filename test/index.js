@@ -76,8 +76,8 @@ tape('stream', function (t) {
 
 tape('intersect', function (t) {
   var a = []
-  db.vec.intersects({
-    vectors: ['.bar:baz', '.quux:okay'],
+  db.vec.query({
+    query: ['AND', '.bar:baz', '.quux:okay'],
     values: true
   })
   .pipe({
