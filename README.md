@@ -29,26 +29,12 @@ If `key` is an integer it is taken as the value that hash would have returned.
 get a single value from the index. `vector` must be a type accepted by hash,
 index is the integer position to look at.
 
-### fvv.intersects({vectors: [], reverse, limit})
+### fvv.query({query, reverse, limit})
 
-return a push-stream of the intersections between one or more indexes.
-the `vectors` is an array of whatever type is accepted by `hash`.
-
-### fvv.union({vectors: [], reverse, limit})
-
-return a push-stream of the union of one or more indexes.
-a record is included in the output if it's in either or both.
-If a record is in both indexes, it in _not included in the output twice_.
-the `vectors` is an array of whatever type is accepted by `hash`.
-
-### fvv.update(each_fn, cb)
-
-Update the indexes with a new function. calls `cb` when complete.
-only a single call to `update` is allowed at a time. If you need to make multiple
-updates at once, they should be merged. Updates may add indexes, but not remove them.
-Immediately after the update is complete, the `each` function (passed to constructor)
-should be updated to do both what `each_fn` and the original `each` does.
-the effect should be that rebuilding the index at this point returns both.
+query is either a string of the form `(.{key})+:{value}` for example `.foo.bar:baz`
+will return records that have value `baz` at path `foo.bar`.
+query can also be an array of `['AND' | 'OR' | 'DIFF', query...]` that returns
+the intersection, union, or difference of the subqueries.
 
 ## License
 
