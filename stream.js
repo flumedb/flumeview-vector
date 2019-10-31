@@ -25,6 +25,8 @@ CursorStream.prototype.resume = function () {
       //TODO clean up any substreams (for intersect and union)
       this.ended = true
       if(!this.sink.paused) this.sink.end()
+      else this._resuming = false
+
       return
     }
   }
@@ -37,11 +39,6 @@ CursorStream.prototype.resume = function () {
 }
 
 
-CursorStream.prototype.pipe = function (dest) {
-  this.sink = dest
-  dest.source = this
-  if(!dest.paused) this.resume()
-  return dest
-}
+CursorStream.prototype.pipe = require('push-stream/pipe')
 
 module.exports = CursorStream
