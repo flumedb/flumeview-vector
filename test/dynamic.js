@@ -30,7 +30,7 @@ var log = toCompat(Log(path.join(dir, 'log.aligned'), {
   block: 1024*64,
 }))
 
-var Dynamic = require('../examples/dynamic')
+var Dynamic = require('../dynamic')
 
 var start = Date.now()
 var db = Flume(log).use('dyn', Dynamic())

@@ -1,4 +1,4 @@
-var FlumeViewVector = require('..')
+var FlumeViewVector = require('./')
 var hash = require('string-hash')
 var bipf = require('bipf')
 var AtomicFile = require('atomic-file')
