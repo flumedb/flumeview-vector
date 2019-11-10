@@ -176,8 +176,13 @@ module.exports = function (version, hash, each) {
         var reverse = !!opts.reverse, limit = opts.limit
         var stream = (function evalQuery(args, top) {
           top = top === true
-          if(isString(args))
-            return new Cursor(blocks, ht.get(hash(args)), reverse, top ? limit : null)
+          if(args[0] == 'EQ')
+            return new Cursor(blocks, ht.get(
+              hash(
+                //'.'+args[1].join('.')+':'+args[2])
+                args
+              )),
+              reverse, top ? limit : null)
           else
             return new (
               ({AND: Intersect, OR: Union, DIFF: Difference})[args[0]]

@@ -69,15 +69,21 @@ exports.encode = function encode (value) {
 //query interpreter, that operates on json values
 
 var createQuery = exports.createQuery = function (q) {
-  if('string' == typeof q) {
-    var parts = /^\.([^:]+)\:(.*)$/.exec(q)
-    var path = parts[1].split('.'), value = parts[2]
-    value = value === 'true' ? true : value === 'false' ? false : !isNaN(+value) ? +value : value
-    return function (data) {
-      return nested.get(data, path) === value
-    }
-  }
+//  if('string' == typeof q) {
+//    var parts = /^\.([^:]+)\:(.*)$/.exec(q)
+//    var path = parts[1].split('.'), value = parts[2]
+//    value = value === 'true' ? true : value === 'false' ? false : !isNaN(+value) ? +value : value
+//    return function (data) {
+//      return nested.get(data, path) === value
+//    }
+//  }
   var op = q[0]
+
+  if(op === 'EQ')
+    return function (data) {
+      return nested.get(data, q[1]) === q[2]
+    }
+
   var args = q.slice(1).map(createQuery)
   if(op == 'AND')
     return function (data) {
@@ -96,7 +102,7 @@ var createQuery = exports.createQuery = function (q) {
       return args[0](data) && !args[1](data)
     }
   else
-    throw new Error('unknown operation')
+    throw new Error('unknown operation:' + op)
 }
 
 exports.test = function (tape, vectors, data, opts) {

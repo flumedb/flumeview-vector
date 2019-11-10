@@ -32,30 +32,26 @@ var _letter = Buffer.from('letter')
 var start = Date.now()
 function addEverything (buf, seq, add) {
   bipf.iterate(buf, 0, function (_, _value, _key) {
-    add('.'+bipf.decode(buf, _key) + ':' + bipf.decode(buf, _value))
+    add(['EQ', bipf.decode(buf, _key), bipf.decode(buf, _value)])
   })
 }
 
+function _hash ([_EQ, path, value]) {
+  if(_EQ != 'EQ') throw new Error('wrong query format:' + _EQ)
+  path = (Array.isArray(path) ? path.join('.') : path)
+  return hash('.'+path+':' + value)
+}
+
 var db = Flume(log)
-  .use('vec', FlumeViewVector(1, hash, addEverything))
+  .use('vec', FlumeViewVector(1, _hash, addEverything))
 
 var test = u.setup(tape, db, db.vec, u.randomDogFruit, N)
-
-//function Filter(query) {
-//  return function (e) {
-//    for(var k in query)
-//      if(e[k] !== query[k]) return false
-//    return true
-//  }
-//}
-//
 function testMatch(opts) {
   var query = opts.query, limit = opts.limit, reverse = opts.reverse
   limit = limit || -1
   var string = JSON.stringify({query: query, limit: limit == -1 ? undefined : limit, reverse:reverse || undefined})
-  var keys = Object.keys(query).map(function (k) { return '.'+k+':'+query[k] })
+  var keys = Object.keys(query).map(function (k) { return ['EQ', [k], query[k]] })
   var length = keys.length
-
   test({
     query: ['AND'].concat(keys), reverse: reverse, limit: limit
   })
