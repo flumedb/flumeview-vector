@@ -37,10 +37,6 @@ use intersection (and) disjunction (or), etc operators to query, just
 by looking at the index values, not loading the records.
 */
 
-function isString(s) {
-  return 'string' === typeof s
-}
-
 var block_size = 65536
 module.exports = function (version, hash, each) {
   return function (log, name) {

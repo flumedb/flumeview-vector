@@ -56,33 +56,11 @@ Intersect.prototype.ready = function () {
 Intersect.prototype.next = function () {
   const cursors = this.cursors
   if(!this.ready()) throw new Error('next called when not ready')
-//  var max = this.max
-//
-//  var loop = true
-//  while(loop) {
-//    loop = false
-//    for(var i = 0; i < cursors.length; i++) {
-//      //TODO: skip forward, rather than just step forward.
-//      while(cmp.lt(cursors[i].value, max, this.reverse)) {
-//        cursors[i].next()
-//        this.ended = this.ended || cursors[i].isEnded()
-//        if(!cursors[i].ready()) return 0
-//      }
-//
-//      if(cmp.gt(cursors[i].value, max, this.reverse)) {
-//        max = cursors[i].value
-//        loop = true
-//        break;
-//      }
-//    }
-//  }
-
   var value = this.value //cursors[0].value
   for(var i = 0; i < cursors.length; i++) {
     cursors[i].next()
     this.ended = this.ended || cursors[i].isEnded()
   }
-
   return this.value = value
 }
 
