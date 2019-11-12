@@ -122,6 +122,7 @@ Cursor.prototype.next = function () {
 
 Cursor.prototype.isEnded = function () {
   return (
+    this.ended ||
     this.reverse
     ? (this.index < 0 && !this._prev)
     : (this.index - this._start) >= this._length  && !this._next
