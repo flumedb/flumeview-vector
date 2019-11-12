@@ -67,7 +67,7 @@ for(var i = 0; i < 10; i++) {
     console.log(test.data, o)
     var k = u.randomPath(o)
 
-    var str = '.' + k.join('.') + ':' + nested.get(o, k)
+    var str = ['EQ', k, nested.get(o, k)]
     test({query: str})
 //    test({query: str})
 

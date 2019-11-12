@@ -5,7 +5,7 @@ var Log      = require('flumelog-aligned-offset')
 var toCompat = require('flumelog-aligned-offset/compat')
 var path     = require('path')
 var rimraf   = require('rimraf')
-var hash     = require('string-hash')
+var hash     = require('../hash')
 var Reduce   = require('flumeview-reduce')
 var bipf     = require('bipf')
 var pull     = require('pull-stream')
@@ -36,14 +36,8 @@ function addEverything (buf, seq, add) {
   })
 }
 
-function _hash ([_EQ, path, value]) {
-  if(_EQ != 'EQ') throw new Error('wrong query format:' + _EQ)
-  path = (Array.isArray(path) ? path.join('.') : path)
-  return hash('.'+path+':' + value)
-}
-
 var db = Flume(log)
-  .use('vec', FlumeViewVector(1, _hash, addEverything))
+  .use('vec', FlumeViewVector(1, hash, addEverything))
 
 var test = u.setup(tape, db, db.vec, u.randomDogFruit, N)
 function testMatch(opts) {
