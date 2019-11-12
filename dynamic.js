@@ -2,6 +2,7 @@ var FlumeViewVector = require('./')
 var hash = require('string-hash')
 var bipf = require('bipf')
 var AtomicFile = require('atomic-file')
+var hash = require('./hash')
 var path = require('path')
 var pull = require('pull-stream')
 var Through = require('push-stream/throughs/through')
@@ -37,22 +38,22 @@ function createIndexer (indexed) {
     ;(function recurse (p, path) {
       bipf.iterate(buf, p, function (_, _value, _key) {
         var type = bipf.getEncodedType(buf, _value)
-        var __key = path+'.'+bipf.decode(buf, _key)
-        var index_type = indexed[__key]
+        var __key = path.concat(bipf.decode(buf, _key))
+        var index_type = indexed[__key.join('.')]
         if(!index_type) return
 
-        if(index_type & IS_DEFINED) add(__key + '!!')
+        if(index_type & IS_DEFINED) add(hash(['EQ', __key, null]))
 
         if(type === bipf.types.string) {
           if(index_type & STRING && bipf.getEncodedLength(buf, _value) < 100) {
-            add(__key + ':' + bipf.decode(buf, _value))
+            add(hash(['EQ', __key, bipf.decode(buf, _value)]))
           }
         }
         else if(type == bipf.types.object) {
           recurse(_value, __key)
         }
       })
-    })(0, '')
+    })(0, [])
   }
 }
 
@@ -78,20 +79,22 @@ module.exports = function () {
 
       ;(function recurse (q) {
         //[AND|OR|DIFF, terms...] add terms to index. AND|OR|DIFF doesn't matter
-        if(Array.isArray(q)) {
+        if(!Array.isArray(q)) throw new Error('invalid query:'+JSON.stringify(q))
+        if(q[0] !== 'EQ') {
           for(var i = 1; i < q.length; i++)
             recurse(q[i])
         }
         else {
-          var prefix = /^((?:\.[\w-]+)+)(!|\:.+)/.exec(q)
-          //check if this term is indexed, or currently being added to index
-          if(prefix && !(STRING & (indexed[prefix[1]] | optimistic_indexed[prefix[1]]))) {
-            toIndex[prefix[1]] = toIndex[prefix[1]] | (prefix[2][0] == ':' ? STRING : IS_DEFINED)
-            var s = ''
-            prefix[1].split(/\./).slice(1).forEach(function (e, _, a) {
-              s += '.' + e
-              toIndex[s] = toIndex[s] | OBJECT
-            })
+          var [_EQ, path, value] = q
+          var p = path.join('.')
+          if(!(STRING & (indexed[p] | optimistic_indexed[p]))) {
+            toIndex[p] = toIndex[p] | STRING
+            var _path = []
+            for(var i = 0; i < path.length-1; i++) {
+              _path.push(path[i])
+              p = _path.join('.')
+              toIndex[p] = toIndex[p] | OBJECT
+            }
           }
         }
       })(q)
