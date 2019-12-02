@@ -6,7 +6,7 @@ var Log      = require('flumelog-aligned-offset')
 var toCompat = require('flumelog-aligned-offset/compat')
 var path     = require('path')
 var rimraf   = require('rimraf')
-
+var hash     = require('../hash')
 
 var filename = '/tmp/test_flumeview-vector/log.aligned'
 rimraf.sync(path.dirname(filename))
@@ -16,25 +16,25 @@ var log = toCompat(Log(filename, {block: 2*1024, codec: require('flumecodec').js
 var FlumeViewVector = require('../')
 
 function addEverything (value, seq, add, path) {
-  path = path || ''
+  path = path || []
   for(var k in value) {
     //simple values (but not numbers, because we'd want to range query those...)
     if(value[k] == null || 'string' === typeof value[k] || 'boolean' === typeof value[k]) {
-      var key = path + '.' + k + ':'+value[k]
+      var key = ['EQ', path.concat(k), value[k]]
       console.log('add:', key)
       add(key)
     }
     else if('object' === typeof value[k])
-      each(value[k], seq, add, path+'.'+k)
+      each(value[k], seq, add, path.concat(k))
   }
 }
 
-function hash (s) {
-  //much more secure than necessary...
-  var h = crypto.createHash('sha256').update(s, 'utf8').digest().readUInt32LE(0)
-  console.log('hash:', s, h)
-  return h
-}
+//function hash (s) {
+//  //much more secure than necessary...
+//  var h = crypto.createHash('sha256').update(s, 'utf8').digest().readUInt32LE(0)
+//  console.log('hash:', s, h)
+//  return h
+//}
 
 var db = Flume(log)
   .use('vec', FlumeViewVector(1, hash, addEverything))
@@ -54,10 +54,10 @@ tape('initialize', function (t) {
     db.get(offset, function (err, value) {
       if(err) throw err
       console.log(value)
-      db.vec.get({key:'.bar:baz', index: 0}, function (err, value) {
+      db.vec.get({key: ['EQ', ['bar'], 'baz'], index: 0}, function (err, value) {
         if(err) throw err
         t.deepEqual(value, data[0])
-        db.vec.get({key:'.bar:baz', index: 1}, function (err, value) {
+        db.vec.get({key: ['EQ', ['bar'], 'baz'], index: 1}, function (err, value) {
           if(err) throw err
           t.deepEqual(value, data[1])
           t.end()
@@ -77,7 +77,10 @@ tape('stream', function (t) {
 tape('intersect', function (t) {
   var a = []
   db.vec.query({
-    query: ['AND', '.bar:baz', '.quux:okay'],
+    query: ['AND',
+      ['EQ', ['bar'], 'baz'],
+      ['EQ', ['quux'], 'okay']
+    ],
     values: true
   })
   .pipe({

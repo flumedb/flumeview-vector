@@ -7,7 +7,7 @@ var path     = require('path')
 var rimraf   = require('rimraf')
 //note: using this function quite a few values get collisions.
 //too many, really.
-var hash     = require('string-hash')
+var hash     = require('../hash')
 var Reduce   = require('flumeview-reduce')
 var bipf     = require('bipf')
 var pull     = require('pull-stream')
@@ -39,11 +39,11 @@ var _bar = Buffer.from('bar')
 
 function addFoo (value, seq, add) {
   var foo = bipf.decode(value, bipf.seekKey(value, 0, _foo))
-  add(foo)
+  add(['EQ', ['foo'], foo])
 }
 function addBar (value, seq, add) {
   var bar = bipf.decode(value, bipf.seekKey(value, 0, _bar))
-  add(bar)
+  add(['EQ', ['bar'], bar])
 }
 
 function addFooBar (value, seq, add) {
@@ -84,15 +84,18 @@ tape('setup', function (t) {
 function testQuery(name, n) {
   tape('query ' + name +'('+n+'):', function (t) {
     var zero = true
-    var key = name[0].toUpperCase()+n.toString(36)
+    var value =  name[0].toUpperCase()+n.toString(36)
+    var key =  ['EQ', [name], value] //name[0].toUpperCase()+n.toString(36)
     db.vec.query({
-      query: key, values: true
+      query: key,
+//      query: key,
+      values: true
     })
     .pipe({
       write: function (data) {
         zero = false
-        console.log(bipf.decode(data, 0), hash(bipf.decode(data)[name]))
-        t.equal(hash(bipf.decode(data)[name]), hash(key))
+//        console.log(bipf.decode(data, 0), hash(bipf.decode(data)[name]))
+        t.equal(hash(['EQ', [name], bipf.decode(data)[name]]), hash(key))
       },
       end: function (err) {
         if(err && err != true) throw err
