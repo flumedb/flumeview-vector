@@ -46,37 +46,22 @@ db.vec.since(function (v) {
     var C = 0, L = 0, _seq
     var start = Date.now(), ts = Date.now()
 
-      var int = db.vec.query({ query: '.value.content.channel:solarpunk' })
-      .pipe({
-        write: function (e) { C++ },
-        end :function () {
-          var time = (Date.now() - start) / 1000
-          console.log('channel:solarpunk\n' + [C, time, C / time].join(', '))
-          C = 0
-          var int = db.vec.query({ query: '.value.content.type:post' })
-          .pipe({
-            write: function (e) { C++ },
-            end :function () {
-              var time = (Date.now() - start) / 1000
-              console.log('type:post\n' + [C, time, C / time].join(', '))
-              C = 0
-              var int = db.vec.query({ query: ['AND',
-                '.value.content.type:post', '.value.content.channel:solarpunk'
-              ], values: true, reverse: true, limit: 10})
-              .pipe({
-                write: function (e) { C++; /*console.log(bipf.decode(e, 0))*/ },
-                end :function () {
-                  console.log("END")
-                  var time = (Date.now() - start) / 1000
-                  console.log('type:post,channel:solarpunk, values\n' + [C, time, C / time].join(', '))
-                  console.log(C, Date.now() - start)
-                  setTimeout(function () {}, 1000)
-                }
-              })
-            }
-          })
-        }
-      })
+
+    C = 0
+    var int = db.vec.query({ query: ['AND',
+      ['EQ', ['value', 'content', 'channel'], 'solarpunk'],
+      ['EQ', ['value','content','type'], 'post']
+    ], values: true, reverse: true, limit: 10})
+    .pipe({
+      write: function (e) { C++ },
+      end :function () {
+        console.log("END")
+        var time = (Date.now() - start) / 1000
+        console.log('type:post,channel:solarpunk, values\n' + [C, time, C / time].join(', '))
+        console.log(C, Date.now() - start)
+        setTimeout(function () {}, 1000)
+      }
+    })
   })
 })
 
