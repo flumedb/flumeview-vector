@@ -1,21 +1,24 @@
 'use strict'
 
-var path        = require('path')
-var mkdirp      = require('mkdirp')
-var Obv         = require('obv')
-var pull        = require('pull-stream')
-var AtomicFile  = require('atomic-file/buffer')
-var PRAF        = require('polyraf')
-var PushAsync   = require('push-stream/throughs/async')
-var AsyncSingle = require('async-single')
+var path         = require('path')
+var mkdirp       = require('mkdirp')
+var Obv          = require('obv')
+var pull         = require('pull-stream')
+var AtomicFile   = require('atomic-file/buffer')
+var PRAF         = require('polyraf')
+var PushAsync    = require('push-stream/throughs/async')
+var AsyncSingle  = require('async-single')
+var Filter       = require('push-stream/throughs/filter')
+var createFilter = require('bipf-filter')
 
-var HashTable   = require('./hashtable')
-var Vectors     = require('./vector')
-var Blocks      = require('./blocks')
+var HashTable    = require('./hashtable')
+var Vectors      = require('./vector')
+var Blocks       = require('./blocks')
 
-var Intersect   = require('./intersect')
-var Union       = require('./union')
-var Difference  = require('./difference')
+var Intersect    = require('./intersect')
+var Union        = require('./union')
+var Difference   = require('./difference')
+
 var Cursor = require('./cursor')
 
 /*
@@ -186,7 +189,16 @@ module.exports = function (version, hash, each) {
         })(opts.query, true)
 
         if(!opts.values) return stream
-        else             return stream.pipe(Lookup(opts))
+        else {
+          stream = stream.pipe(Lookup(opts))
+          // because the indexes are in a hashtable,
+          // sometimes there will be a collision, and two values
+          // in the same index, so filter after reading.
+          // disable by setting opts.filter=false
+          if(!opts.filter)
+            stream = stream.pipe(Filter(createFilter(opts.query)))
+          return stream
+        }
       }
     }
   }
