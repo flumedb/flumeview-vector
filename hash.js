@@ -24,3 +24,5 @@ module.exports = function hash ([_EQ, path, value]) {
 
   return update(v, ''+value)
 }
+
+module.exports.update = update
