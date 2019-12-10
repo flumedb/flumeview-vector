@@ -43,6 +43,14 @@ base64-js@^1.0.2:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.3.0.tgz#cab1e6118f051095e58b5281aea8c1cd22bfc0e3"
   integrity sha512-ccav/yGvoa80BQDljCxsmmQ3Xvx60/UpBIij5QN21W3wBi/hhIC9OoO+KLpu9IJTS9j4DRVJ3aDDF9cMSoa2lw==
 
+bipf-filter@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/bipf-filter/-/bipf-filter-1.0.1.tgz#5f6edadec551d56888b12e909ba0d882c68d5a3f"
+  integrity sha512-g7Xc29WAa/wBoeavF13EdaDTGU8zB8YCZEiVz3cngKx0egQidgx1WuB5ljweEorDa6S/swj81I/L6SAJn+mqRg==
+  dependencies:
+    bipf "^1.3.0"
+    push-stream "11"
+
 bipf@^1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/bipf/-/bipf-1.3.0.tgz#8fa33d06ef0c79fe1dbd9c5d6735d69712836f01"
@@ -422,6 +430,11 @@ level-codec@^6.2.0:
   resolved "https://registry.yarnpkg.com/level-codec/-/level-codec-6.2.0.tgz#a4b5244bb6a4c2f723d68a1d64e980c53627d9d4"
   integrity sha1-pLUkS7akwvcj1oodZOmAxTYn2dQ=
 
+libnested@^1.4.1:
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/libnested/-/libnested-1.4.1.tgz#8377e32b76a32530e70b6bea155a579ca0a2219b"
+  integrity sha512-7fvNHrU8QTep71gIJuz7z6iBAQULEHJOcIA0MKUlwFrSnntvOvnke+/tnR7ZxyRAQQ303UJXNZBSRz3r0N5tqw==
+
 load-json-file@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/load-json-file/-/load-json-file-4.0.0.tgz#2f5f45ab91e33216234fd53adab668eb4ec0993b"
@@ -666,15 +679,15 @@ push-stream-to-pull-stream@^1.0.3:
     pull-looper "^1.0.0"
     push-stream "^10.0.3"
 
+push-stream@11:
+  version "11.0.0"
+  resolved "https://registry.yarnpkg.com/push-stream/-/push-stream-11.0.0.tgz#31827bb6b10c13d42f47b478252d792d826e9906"
+  integrity sha512-rDVD2f3wOztI/59/fukGLwZkUOC55674hncsSwgKF/yLlkkL594AoWTlkF6SGF0x8O5o1j92ObXk8Cxc1llhYg==
+
 push-stream@^10.0.3:
   version "10.1.0"
   resolved "https://registry.yarnpkg.com/push-stream/-/push-stream-10.1.0.tgz#cba90e8bbd03109d005ead67ee1942ce9212428d"
   integrity sha512-H6HYLgkWo6AXcB5M91EYh788htWsD2hmNKKXiby47BTDIWKekxmy4DY3CjIgAseiVa1lWO5RMcRkli3mALDxzQ==
-
-push-stream@^10.1.2:
-  version "10.1.2"
-  resolved "https://registry.yarnpkg.com/push-stream/-/push-stream-10.1.2.tgz#8578885b7e957463d02df56ea2049b3cabb7d990"
-  integrity sha512-wCDN1KkAWOMXsiV0XxH/CggHqOYeXvyn00t9Zjp5RKsLZ2rzg/lLJIMAVxYLyh79T168W3fBYcG5TRRJAlQr6g==
 
 quick-lru@^1.0.0:
   version "1.1.0"
