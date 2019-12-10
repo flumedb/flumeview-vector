@@ -8,6 +8,13 @@ var pull = require('pull-stream')
 var Through = require('push-stream/throughs/through')
 const IS_DEFINED = 1, STRING = 2, OBJECT = 4
 
+function hash_array (p) {
+  var v = 0
+  for(var i = 0; i < p.length; i++)
+    v = hash.update(v, p[i])
+  return v
+}
+
 function pushCont (cont) {
   var stream
   cont(function (err, _stream) {
@@ -35,25 +42,33 @@ function createIndexer (indexed) {
   return function (buf, seq, add) {
     if(isEmpty(indexed)) return
 
-    ;(function recurse (p, path) {
+    ;(function recurse (p, path, hash_value) {
       bipf.iterate(buf, p, function (_, _value, _key) {
         var type = bipf.getEncodedType(buf, _value)
-        var __key = path.concat(bipf.decode(buf, _key))
-        var index_type = indexed[__key.join('.')]
+        var string_key = bipf.decode(buf, _key)
+        var key_hash = hash.update(hash_value, string_key)
+        var __key = path.concat(string_key)
+        var index_type = indexed[hash_array(__key)]
         if(!index_type) return
 
         if(index_type & IS_DEFINED) add(hash(['EQ', __key, null]))
 
         if(type === bipf.types.string) {
           if(index_type & STRING && bipf.getEncodedLength(buf, _value) < 100) {
-            add(hash(['EQ', __key, bipf.decode(buf, _value)]))
+            var _hash = hash(['EQ', __key, bipf.decode(buf, _value)])
+            var value = ''+bipf.decode(buf, _value)
+            var _hash2 = hash.update(key_hash, value)
+            if(_hash !== _hash2) {
+              throw new Error('expected incremental hash to be equal:')
+            }
+            add(_hash)
           }
         }
         else if(type == bipf.types.object) {
-          recurse(_value, __key)
+          recurse(_value, __key, key_hash)
         }
       })
-    })(0, [])
+    })(0, [], 0)
   }
 }
 
@@ -86,14 +101,14 @@ module.exports = function () {
         }
         else {
           var [_EQ, path, value] = q
-          var p = path.join('.')
+          var p = hash_array(path)
           if(!(STRING & (indexed[p] | optimistic_indexed[p]))) {
             toIndex[p] = toIndex[p] | STRING
             var _path = []
             for(var i = 0; i < path.length-1; i++) {
               _path.push(path[i])
-              p = _path.join('.')
-              toIndex[p] = toIndex[p] | OBJECT
+              var p2 = hash_array(_path)
+              toIndex[p2] = toIndex[p2] | OBJECT
             }
           }
         }
@@ -113,7 +128,6 @@ module.exports = function () {
             indexed[k] = indexed[k] | toIndex[k]
   //          delete optimistic_indexed[k]
           }
-          //vectors.query(opts).pipe(through).resume()
           af.set(indexed, function () {})
           cb(null, vectors.query(opts))
         })
