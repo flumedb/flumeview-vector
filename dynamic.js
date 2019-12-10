@@ -41,6 +41,9 @@ function createFilter(query) {
 function createIndexer (indexed) {
   return function (buf, seq, add) {
     if(isEmpty(indexed)) return
+    //by using bipf encoding, and an incremental hash function
+    //indexing doesn't allocate anything on the heap.
+    //(not counting when it actually indexes) so this is really fast!
 
     ;(function recurse (p, hash_value) {
       bipf.iterate(buf, p, function (_, _value, _key) {
