@@ -177,10 +177,7 @@ module.exports = function (version, hash, each) {
           top = top === true
           if(args[0] == 'EQ')
             return new Cursor(blocks, ht.get(
-              hash(
-                //'.'+args[1].join('.')+':'+args[2])
-                args
-              )),
+              hash(args)),
               reverse, top ? limit : null)
           else
             return new (
