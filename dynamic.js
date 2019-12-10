@@ -42,33 +42,25 @@ function createIndexer (indexed) {
   return function (buf, seq, add) {
     if(isEmpty(indexed)) return
 
-    ;(function recurse (p, path, hash_value) {
+    ;(function recurse (p, hash_value) {
       bipf.iterate(buf, p, function (_, _value, _key) {
         var type = bipf.getEncodedType(buf, _value)
-        var string_key = bipf.decode(buf, _key)
-        var key_hash = hash.update(hash_value, string_key)
-        var __key = path.concat(string_key)
-        var index_type = indexed[hash_array(__key)]
+        var key_hash = hash.update_bipf(hash_value, buf, _key)
+        var index_type = indexed[key_hash]
         if(!index_type) return
 
-        if(index_type & IS_DEFINED) add(hash(['EQ', __key, null]))
+        if(index_type & IS_DEFINED) add(hash.update(key_hash, 'null'))
 
         if(type === bipf.types.string) {
           if(index_type & STRING && bipf.getEncodedLength(buf, _value) < 100) {
-            var _hash = hash(['EQ', __key, bipf.decode(buf, _value)])
-            var value = ''+bipf.decode(buf, _value)
-            var _hash2 = hash.update(key_hash, value)
-            if(_hash !== _hash2) {
-              throw new Error('expected incremental hash to be equal:')
-            }
-            add(_hash)
+            add(hash.update_bipf(key_hash, buf, _value))
           }
         }
         else if(type == bipf.types.object) {
-          recurse(_value, __key, key_hash)
+          recurse(_value, key_hash)
         }
       })
-    })(0, [], 0)
+    })(0, 0)
   }
 }
 
