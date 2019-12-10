@@ -73,7 +73,7 @@ tape('stream', function (t) {
     t.end()
   }))
 })
-
+return
 tape('intersect', function (t) {
   var a = []
   db.vec.query({
