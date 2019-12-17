@@ -27,7 +27,7 @@ var log = toCompat(Log(path.join(dir, 'log.aligned'), {
   block: 1024,
 }))
 
-var FlumeViewVector = require('../')
+var FlumeViewVector = require('../core')
 
 function encode (value) {
   var b = Buffer.alloc(bipf.encodingLength(value))

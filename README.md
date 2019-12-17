@@ -18,7 +18,7 @@ Flumeview-Vector **must** be used with a flumeview-log that uses `bipf` format.
 
 ## api
 
-`FlumeViewVector = require('flumeview-vector/dynamic')`
+`FlumeViewVector = require('flumeview-vector')`
 
 ## FlumeViewVector() => fvv
 

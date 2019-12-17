@@ -13,7 +13,7 @@ rimraf.sync(path.dirname(filename))
 
 var log = toCompat(Log(filename, {block: 2*1024, codec: require('flumecodec').json}))
 
-var FlumeViewVector = require('../')
+var FlumeViewVector = require('../core')
 
 function addEverything (value, seq, add, path) {
   path = path || []

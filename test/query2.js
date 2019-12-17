@@ -25,7 +25,7 @@ var log = toCompat(Log(path.join(dir, 'log.aligned'), {
   block: 1024,
 }))
 
-var FlumeViewVector = require('..')
+var FlumeViewVector = require('../core')
 
 var start = Date.now()
 function addEverything (buf, seq, add) {

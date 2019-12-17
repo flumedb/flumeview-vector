@@ -18,7 +18,7 @@ var log = toCompat(Log(
   block: 64*1024, //codec: require('flumecodec').json
 }))
 
-var FlumeViewVector = require('../dynamic')
+var FlumeViewVector = require('../')
 
 var _value = Buffer.from('value')
 var _content = Buffer.from('content')
