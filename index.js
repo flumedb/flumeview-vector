@@ -41,7 +41,7 @@ by looking at the index values, not loading the records.
 */
 
 var block_size = 65536
-module.exports = function (version, hash, each) {
+module.exports = function (version, hash, each, startEmpty) {
   return function (log, name) {
     var since = Obv()
     var af
@@ -52,9 +52,20 @@ module.exports = function (version, hash, each) {
       af = AtomicFile(path.join(dir, 'hashtable.ht'))
       blocks = Blocks(PRAF(path.join(dir, 'vectors.vec'), {readable: true, writable: true}), block_size)
       vectors = Vectors.inject(blocks, block_size)
-      af.get(function (err, value) {
-        ht = HashTable().initialize(value || 65536)
-        since.set(ht.buffer.readUInt32LE(0) - 1) //starts replication
+      af.get(function (_, value) {
+        if(!Buffer.isBuffer(value)) {
+          ht = HashTable().initialize(65536)
+          if(!startEmpty)
+            since.set(-1)
+          else
+            log.since.once(function (value) {
+              since.set(value)
+            })
+        }
+        else {
+          ht = HashTable().initialize(value)
+          since.set(ht.buffer.readUInt32LE(0) - 1) //starts replication
+        }
       })
     })
 

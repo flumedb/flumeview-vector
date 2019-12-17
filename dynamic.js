@@ -71,7 +71,7 @@ module.exports = function () {
   return function (log, name) {
     var indexed, optimistic_indexed = {}
     var af = AtomicFile(path.join(path.dirname(log.filename), name, 'indexed.json'))
-    var vectors = FlumeViewVector(1, hash, createIndexer(indexed))(log, name)
+    var vectors = FlumeViewVector(1, hash, createIndexer(indexed), true)(log, name)
     af.get(function (err, _indexed) {
       indexed = _indexed || {}
     })
